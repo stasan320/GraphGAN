@@ -1,5 +1,4 @@
 #include <iostream>
-#include <windows.h>
 #include <cmath>
 
 using namespace std;
@@ -8,9 +7,7 @@ const int coat = 3;
 
 
 int main() {
-	int i, j, k, w = 0, l, kl,
-		n[coat] = { 2, 2, 3 },
-		l1 = 0, l2 = 0, l3 = 0;
+	int i, j, k, w = 0, n[coat] = { 2, 2, 1 }, l, l1 = 0, l2 = 0, l3 = 0, kl;
 
 	double ka = 0;
 
@@ -48,15 +45,14 @@ int main() {
 		delw[i] = 0;
 	}
 
-	int* coll = new int[3];
 
-	outO[0] = 1;
-	outO[1] = 0;
-	outO[2] = 0;
+	for (i = 0; i < n[coat - 1]; i++) {
+		outO[i] = 0.1;
+	}
 
 
-	for (k = 0; k < 10000; k++) {
-		for (i = 0; i < (w - n[0]); i++) {
+	for (k = 0; k < 100; k++) {
+		for (i = 0; i < (kl - n[0]); i++) {
 			net[i] = 0;
 		}
 		l1 = 0;
@@ -79,16 +75,29 @@ int main() {
 		l2 = 0;
 
 		for (i = 0; i < n[coat - 1]; i++) {
+			cout << out[kl - n[coat - 1] + i] << endl;
+		}
+		cout << endl;
+
+		for (i = 0; i < n[coat - 1]; i++) {
 			del[i] = (outO[i] - out[l3 + i]) * out[l3 + i] * (1 - out[l3 + i]);
 		}
 
-		for (l = 0; l < coat - 1; l++) {
+		for (i = 0; i < n[coat - 2]; i++) {
+			for (j = 0; j < n[coat - 1]; j++) {
+				grad[i * n[coat - 1] + j] = del[j] * out[l3 - n[coat - 2] * n[coat - 1] + i];
+				delw[i * n[coat - 1] + j] = 0.5 * grad[i * n[coat - 1] + j] + 0.3 * delw[i * n[coat - 1] + j];
+				weight[w - n[coat - 1] * n[coat - 2] + i * n[coat - 1] + j] = weight[w - n[coat - 1] * n[coat - 2] + i * n[coat - 1] + j] + delw[i * n[coat - 1] + j];
+			}
+		}
+
+		for (l = 0; l < coat - 2; l++) {
 			l1 = n[coat - 1 - l] * n[coat - 2 - l] + l1;
-			for (i = 0; i < n[coat - 2]; i++) {
-				for (j = 0; j < n[coat - 1]; j++) {
-					grad[l1 - n[coat - 1] * n[coat - 2] + i * n[coat - 1] + j] = del[l2 + j] * out[l3 - n[coat - 2] + i];
-					delw[l1 - n[coat - 1] * n[coat - 2] + i * n[coat - 1] + j] = 0.5 * grad[l1 - n[coat - 1] * n[coat - 2] + i * n[coat - 1] + j] + 0.3 * delw[l1 - n[coat - 1] * n[coat - 2] + i * n[coat - 1] + j];
-					weight[w - l1 + i * n[coat - 1] + j] = weight[w - l1 + i * n[coat - 1] + j] + delw[l1 - n[coat - 1] * n[coat - 2] + i * n[coat - 1] + j];
+			for (i = 0; i < n[coat - 2 - l]; i++) {
+				for (j = 0; j < n[coat - 1 - l]; j++) {
+					grad[l1 - n[coat - 1] * n[coat - 2] + i * n[coat - 1 - l] + j] = del[l2 + j] * out[l3 - n[coat - 2 - l] + i];
+					delw[l1 - n[coat - 1] * n[coat - 2] + i * n[coat - 1 - l] + j] = 0.5 * grad[l1 - n[coat - 1] * n[coat - 2] + i * n[coat - 1 - l] + j] + 0.3 * delw[l1 - n[coat - 1] * n[coat - 2] + i * n[coat - 1] + j];
+					weight[w - l1 + i * n[coat - 1 - l] + j] = weight[w - l1 + i * n[coat - 1 - l] + j] + delw[l1 - n[coat - 1] * n[coat - 2] + i * n[coat - 1 - l] + j];
 				}
 			}
 
@@ -96,31 +105,10 @@ int main() {
 				for (j = 0; j < n[coat - 1 - l]; j++) {
 					ka = del[l2 + j] * weight[w - l1 + i * n[coat - 1] + j] + ka;
 				}
-				del[l2 + n[coat - 1] + i] = (1 - out[n[coat - 2] + i]) * out[l3 - n[coat - 2] + i] * ka;
+				del[l2 + n[coat - 1 - l] + i] = (1 - out[n[coat - 2 - l] + i]) * out[l3 - n[coat - 2 - l] + i] * ka;
 			}
 			l2 = l2 + n[coat - 1 - l];
 			ka = 0;
-		}	
-	}
-
-	for (l = 0; l < 3; l++) {
-		coll[l] = out[l3 + l] * 250;
-	}
-
-	for (i = 0; i < 20; i++) {
-		for (j = 0; j < 5; j++) {
-			HWND hwnd;
-			char Title[1024];
-			GetConsoleTitle(Title, 1024);
-			hwnd = FindWindow(NULL, Title);
-
-			HDC hdc = GetDC(hwnd);
-			HPEN p1, p2 = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
-			p1 = (HPEN)SelectObject(hdc, p2);
-
-			SetPixel(hdc, i, j, RGB(coll[0], coll[1], coll[2]));
-			SelectObject(hdc, p1);
 		}
 	}
-	return 0;
 }
