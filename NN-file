@@ -1,4 +1,5 @@
 #include <iostream>
+#include <windows.h>
 #include <cmath>
 
 using namespace std;
@@ -7,7 +8,9 @@ const int coat = 3;
 
 
 int main() {
-	int i, j, k, w = 0, n[coat] = { 2, 2, 1 }, l, l1 = 0, l2 = 0, l3 = 0, kl;
+	int i, j, k, w = 0, l, kl,
+		n[coat] = { 2, 2, 3 },
+		l1 = 0, l2 = 0, l3 = 0;
 
 	double ka = 0;
 
@@ -45,10 +48,14 @@ int main() {
 		delw[i] = 0;
 	}
 
+	int* coll = new int[3];
 
-	outO[0] = 0;
+	outO[0] = 1;
+	outO[1] = 0;
+	outO[2] = 0;
 
-	for (k = 0; k < 100; k++) {
+
+	for (k = 0; k < 10000; k++) {
 		for (i = 0; i < (w - n[0]); i++) {
 			net[i] = 0;
 		}
@@ -93,6 +100,27 @@ int main() {
 			}
 			l2 = l2 + n[coat - 1 - l];
 			ka = 0;
+		}	
+	}
+
+	for (l = 0; l < 3; l++) {
+		coll[l] = out[l3 + l] * 250;
+	}
+
+	for (i = 0; i < 20; i++) {
+		for (j = 0; j < 5; j++) {
+			HWND hwnd;
+			char Title[1024];
+			GetConsoleTitle(Title, 1024);
+			hwnd = FindWindow(NULL, Title);
+
+			HDC hdc = GetDC(hwnd);
+			HPEN p1, p2 = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
+			p1 = (HPEN)SelectObject(hdc, p2);
+
+			SetPixel(hdc, i, j, RGB(coll[0], coll[1], coll[2]));
+			SelectObject(hdc, p1);
 		}
 	}
+	return 0;
 }
