@@ -1,7 +1,8 @@
-#pragma comment(lib, "ws2_32.lib")
 #include <winsock2.h>
 #include <iostream>
 #include <string>
+
+#pragma comment(lib, "ws2_32.lib")
 #pragma warning(disable: 4996)
 
 SOCKET Connection;
@@ -19,7 +20,6 @@ void ClientHandler() {
 }
 
 int main(int argc, char* argv[]) {
-	//WSAStartup
 	WSAData wsaData;
 	WORD DLLVersion = MAKEWORD(2, 1);
 	if (WSAStartup(DLLVersion, &wsaData) != 0) {
