@@ -1,14 +1,15 @@
+//#include <F:/coat.txt>
 #include <windows.h>
 #include <iostream>
 #include <cmath>
 
 using namespace std;
 
-const int coat = 5;
+const int coat = 6;
 
 
 int main() {
-	int i, j, k, w = 0, n[coat] = { 2, 3, 7, 2, 1 }, l, l1 = 0, l2 = 0, l3 = 0, kl;
+	int i, j, k, w = 0, n[coat] = { 2, 4, 3, 3, 6, 5 }, l, l1 = 0, l2 = 0, l3 = 0, kl;
 
 	double ka = 0;
 
@@ -42,19 +43,19 @@ int main() {
 	double* grad = new double[w];
 
 	for (i = 0; i < w; i++) {
-		weight[i] = 1 /(1 + exp(- i));
+		weight[i] = 1 / (1 + exp(-i));
 		delw[i] = 0;
 	}
 
 
-	
-	outO[0] = 0;
-	/*outO[1] = 1;
-	outO[2] = 0.6;
-	/*outO[3] = 0.785;
-	outO[4] = 1;*/
 
-	for (k = 0; k < 10000; k++) {
+	outO[0] = 0;
+	outO[1] = 1;
+	outO[2] = 0.6;
+	outO[3] = 0.785;
+	outO[4] = 1;
+
+	for (k = 0; k < 1000; k++) {
 		for (i = 0; i < (kl - n[0]); i++) {
 			net[i] = 0;
 		}
