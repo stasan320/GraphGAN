@@ -83,23 +83,6 @@ int main() {
 		}
 		cout << endl;
 
-		/*for (i = 0; i < 256; i++) {
-			for (j = 0; j < 256; j++) {
-				HWND hwnd;
-				wchar_t Title[1024];
-				GetConsoleTitle(Title, 1024);
-				hwnd = FindWindow(NULL, Title);
-
-				HDC hdc = GetDC(hwnd);
-				HPEN p1, p2 = CreatePen(PS_SOLID, 2, RGB(0, 255, 0));
-				p1 = (HPEN)SelectObject(hdc, p2);
-
-				GetPixel(hdc, i, j, RGB( * 250, 0, 0));
-				SelectObject(hdc, p1);
-			}
-		}*/
-
-
 		for (i = 0; i < n[coat - 1]; i++) {
 			del[i] = (outO[i] - out[l3 + i]) * out[l3 + i] * (1 - out[l3 + i]);
 		}
