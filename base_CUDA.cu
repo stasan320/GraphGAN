@@ -20,27 +20,22 @@ __global__ void Inversion_CUDA(unsigned char* Image, int Channels) {
 	}
 }
 
-void Image_Inversion_CUDA(unsigned char* Input_Image, int Height, int Width, int Channels) {
-	unsigned char* Dev_Input_Image = NULL;
-
-	cudaMalloc((void**)&Dev_Input_Image, Height * Width * Channels);
-	cudaMemcpy(Dev_Input_Image, Input_Image, Height * Width * Channels, cudaMemcpyHostToDevice);
-
-	dim3 Grid_Image(Width, Height);
-	Inversion_CUDA << <Grid_Image, 1 >> > (Dev_Input_Image, Channels);
-	cudaMemcpy(Input_Image, Dev_Input_Image, Height * Width * Channels, cudaMemcpyDeviceToHost);
-
-	cudaFree(Dev_Input_Image);
-}
-
 int main() {
-	Mat Input_Image = imread("image.png");
+	Mat Input_Image = imread("E:\\Foton\\ngnl_data\\training\\0\\1.png");
 
 	cout << "Height: " << Input_Image.rows << ", Width: " << Input_Image.cols << ", Channels: " << Input_Image.channels() << endl;
-	system("pause");
 
-	Image_Inversion_CUDA(Input_Image.data, Input_Image.rows, Input_Image.cols, Input_Image.channels());
+	unsigned char* Dev_Input_Image = NULL;
 
-	imwrite("image.png", Input_Image);
+	cudaMalloc((void**)&Dev_Input_Image, Input_Image.rows * Input_Image.cols * Input_Image.channels());
+	cudaMemcpy(Dev_Input_Image, Input_Image.data, Input_Image.rows * Input_Image.cols * Input_Image.channels(), cudaMemcpyHostToDevice);
+
+	dim3 Grid_Image(Input_Image.rows * Input_Image.cols);
+	Inversion_CUDA << <Grid_Image, 1 >> > (Dev_Input_Image, Input_Image.channels());
+	cudaMemcpy(Input_Image.data, Dev_Input_Image, Input_Image.rows * Input_Image.cols * Input_Image.channels(), cudaMemcpyDeviceToHost);
+
+	cudaFree(Dev_Input_Image);
+
+	imwrite("E:\\image.png", Input_Image);
 	return 0;
 }
