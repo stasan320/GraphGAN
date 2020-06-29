@@ -15,9 +15,8 @@ using namespace cv;
 const int coat = 3;
 
 int main() {
-	int WeightSum = 0, NeuralSum = 0, n[coat] = { 784, 400, 10 }, Wnum = 0, Onum = 0, Dnum = 0;
+	int WeightSum = 0, NeuralSum = 0, n[coat] = { 784, 400, 10 }, Wnum = 0, Onum = 0, Dnum = 0, dop = 0;
 	float* del, * delw, * weight, * out, * Inp, * Oout;
-	int dop = 0;
 	float pixel = 0;
 	clock_t t1, t2;
 	string name = "E:\\Foton\\ngnl_data\\training\\", filename;
@@ -33,17 +32,9 @@ int main() {
 	float* weights = new float[WeightSum];
 	float* InputDataArr = new float[n[0]];
 	float* outO = new float[n[coat - 1]];
-	/*for (int i = 0; i < n[0]; i++)
-		InputDataArr[i] = 0;
-	InputDataArr[0] = 0.7;*/
-	//InputDataArr[1] = 0.3;
-	/*InputDataArr[2] = 1;
-	InputDataArr[3] = 0.563;*/
-
+	
 	for (int i = 0; i < n[coat - 1]; i++)
 		outO[i] = 0;
-	//outO[0] = 0;
-	//outO[1] = 1;
 
 	cudaMalloc((void**)&out, NeuralSum * sizeof(float));
 	cudaMalloc((void**)&del, (NeuralSum - n[0]) * sizeof(float));
@@ -52,12 +43,8 @@ int main() {
 	cudaMalloc((void**)&Inp, n[0] * sizeof(float));
 	cudaMalloc((void**)&Oout, n[coat - 1] * sizeof(float));
 
-	/*cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(Oout, outO, n[coat - 1] * sizeof(float), cudaMemcpyHostToDevice);*/
-
 	WeightCreation << <WeightSum, 1 >> > (weight, WeightSum);
 	DelwNull << < WeightSum, 1 >> > (delw, WeightSum);
-	//InputData << <n[0], 1 >> > (Inp, out, n[0]);
 
 	t1 = clock();
 	for (int ad = 0; ad < 10; ad++) {
@@ -81,13 +68,6 @@ int main() {
 				cudaMemcpy(Oout, outO, n[coat - 1] * sizeof(float), cudaMemcpyHostToDevice);
 				InputData << <n[0], 1 >> > (Inp, out, n[0]);
 
-				/*InputDataArr[0] = 1  - k;
-				InputDataArr[1] = k;
-				cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
-				InputData << <n[0], 1 >> > (Inp, out, n[0]);
-				outO[0] = 1 - k;
-				cudaMemcpy(Oout, outO, n[coat - 1] * sizeof(float), cudaMemcpyHostToDevice);*/
-
 				for (int i = 0; i < (coat - 1); i++) {
 					Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);										//int coat, int Wnum, int Onum, float* weight, float* out
 					Wnum = Wnum + n[i] * n[i + 1];
@@ -99,7 +79,6 @@ int main() {
 				Wnum = WeightSum;
 
 				for (int j = 0; j < coat - 1; j++) {
-					//addvar = coat - 1 - j;
 					Onum = Onum - n[coat - 2 - j];
 					Wnum = Wnum - n[coat - 2 - j] * n[coat - 1 - j];
 					DeltaN << <n[coat - 2 - j], 1 >> > (Dnum, Wnum, Onum, del, weight, out, n[coat - 1 - j], n[coat - 2 - j]);					    //int Dnum, int Wnum, int Onum, float* del, float* weight, float* out
@@ -114,8 +93,6 @@ int main() {
 					Onum = Onum - n[coat - 2 - j];
 					Wnum = Wnum - n[coat - 1 - j] * n[coat - 2 - j];
 					Deltaw << < n[coat - 2 - j], 1 >> > (weight, del, out, delw, Dnum, Onum, Wnum, n[coat - 1 - j], n[coat - 2 - j]);				//float* weight, float* del, float* out, float* delw, int Dnum, int Onum, int Wnum, int coat, int n
-					//DeltaN << <n[coat - 2 - j], 1 >> > (Dnum, Wnum, Onum, del, weight, out, n[coat - 1 - j], n[coat - 2 - j]);					//int Dnum, int Wnum, int Onum, float* del, float* weight, float* out, int coat, int n
-					//std::cout << Wnum << endl;
 					Dnum = Dnum + n[coat - 1 - j];
 				}
 
@@ -133,46 +110,5 @@ int main() {
 			cout << endl;
 		}
 	}
-
-	/*for (int num = 0; num < n[coat - 1]; num++) {
-		Wnum = 0;
-		Onum = 0;
-		ifstream nam(name + to_string(num) + ".txt");
-		nam >> filename;
-		//std::cout << filename << endl;
-		Mat image = imread(name + to_string(num) + "\\" + filename);
-		/*cout << name + to_string(num) + "\\" + filename << endl;
-		namedWindow("Display");
-		imshow("Display", image);
-		waitKey(1);
-		Sleep(100);*/
-		/*for (int i = 0; i < image.cols; i++) {
-			for (int j = 0; j < image.rows; j++) {
-				for (int p = 0; p < 3; p++) {
-					pixel = pixel + image.at<Vec3b>(i, j)[p];
-				}
-				InputDataArr[i * image.rows + j] = pixel / 765;
-				pixel = 0;
-				//cout << InputDataArr[i * image.rows + j] << endl;
-			}
-		}
-
-		cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
-		//cudaMemcpy(Oout, outO, n[coat - 1] * sizeof(float), cudaMemcpyHostToDevice);
-		InputData << <n[0], 1 >> > (Inp, out, n[0]);
-
-		for (int i = 0; i < coat - 1; i++) {
-			Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);										//int coat, int Wnum, int Onum, float* weight, float* out
-			Wnum = Wnum + n[i] * n[i + 1];
-			Onum = Onum + n[i];
-		}
-
-		cudaMemcpy(weights, out, (NeuralSum) * sizeof(float), cudaMemcpyDeviceToHost);
-		for (int i = dop; i < NeuralSum; i++) cout << weights[i] << endl;
-		cout << endl;
-	}*/
 	std::cout << "Time: " << clock() - t1 << std::endl;
-	/*cudaMemcpy(weights, out, (NeuralSum) * sizeof(float), cudaMemcpyDeviceToHost);
-	for (int i = dop; i < NeuralSum; i++) cout << weights[i] << endl;*/
-	//Sleep(5000);
 }
