@@ -43,7 +43,7 @@ int main() {
 	cudaMalloc((void**)&Inp, n[0] * sizeof(float));
 	cudaMalloc((void**)&Oout, n[coat - 1] * sizeof(float));
 
-	WeightCreation << <WeightSum, 1 >> > (weight, WeightSum);
+	WeightGen << <WeightSum, 1 >> > (weight, WeightSum);
 	DelwNull << < WeightSum, 1 >> > (delw, WeightSum);
 
 	t1 = clock();
