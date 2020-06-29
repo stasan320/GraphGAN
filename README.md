@@ -1,1 +1,1 @@
-CUDA neural network, dont work yet
+CUDA neural network, work 50/50
