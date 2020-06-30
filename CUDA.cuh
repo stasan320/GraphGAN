@@ -5,7 +5,7 @@
 __global__ void WeightGen(float* weight, int size) {                         
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	if (index < size)
-		weight[index] = 1 / (1 + exp2f(-index));
+		weight[index] = (exp2f(2 * net) - 1) / (exp2f(2 * net) + 1);
 }
 
 //обнуление delw
