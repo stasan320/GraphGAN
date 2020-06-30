@@ -8,7 +8,7 @@ const int coat = 4;
 
 
 int main() {
-	int i, j, k, w = 0, n[coat] = { 2, 2, 2, 1 }, l, l1 = 0, l2 = 0, l3 = 0, kl;
+	int w = 0, n[coat] = { 2, 2, 2, 1 }, l, l1 = 0, l2 = 0, l3 = 0, kl;
 
 	double ka = 0;
 
