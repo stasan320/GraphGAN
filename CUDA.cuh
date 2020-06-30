@@ -2,7 +2,7 @@
 #include "device_launch_parameters.h"
 
 //инициализация весов
-__global__ void WeightCreation(float* weight, int size) {                         
+__global__ void WeightGen(float* weight, int size) {                         
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	if (index < size)
 		weight[index] = 1 / (1 + exp2f(-index));
