@@ -38,7 +38,6 @@ __global__ void Sumfunc(int layer, int Wnum, int Onum, float* weight, float* out
 __global__ void Delta(float* outO, float* out, float* del, int Onum, int size) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 
-	//if (index < size)
 	del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
 	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
 }
