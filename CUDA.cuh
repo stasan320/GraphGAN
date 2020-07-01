@@ -5,7 +5,7 @@
 __global__ void WeightGen(float* weight, int size) {                         
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	if (index < size)
-		weight[index] = (exp2f(2 * net) - 1) / (exp2f(2 * net) + 1);
+		weight[index] = 1 / (1 + exp2f(-index));
 }
 
 //обнуление delw
@@ -27,13 +27,11 @@ __global__ void Sumfunc(int layer, int Wnum, int Onum, float* weight, float* out
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	float net = 0;
 
-	//if (index < dop) {
-		for (int i = 0; i < layer; i++) {
-			net = net + weight[Wnum + index * layer + i] * out[Onum + i];
-		}
-		//out[Onum + layer + index] = 1 / (1 + exp2f(-net));
-		out[Onum + layer + index] = (exp2f(2 * net) - 1) / (exp2f(2 * net) + 1);
-	//}
+	for (int i = 0; i < layer; i++) {
+		net = net + weight[Wnum + index * layer + i] * out[Onum + i];
+	}
+	out[Onum + layer + index] = 1 / (1 + exp2f(-net));
+	//out[Onum + layer + index] = (exp2f(2 * net) - 1) / (exp2f(2 * net) + 1);
 }
 
 //первая дельта
@@ -41,8 +39,8 @@ __global__ void Delta(float* outO, float* out, float* del, int Onum, int size) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 
 	//if (index < size)
-	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
-	del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
+	del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
+	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
 }
 
 //последующие дельты
@@ -53,7 +51,8 @@ __global__ void DeltaN(int Dnum, int Wnum, int Onum, float* del, float* weight, 
 	for (int i = 0; i < layer; i++) {
 		per = per + del[Dnum + i] * weight[Wnum + index + n * i];
 	}
-	del[Dnum + layer + index] = (1 - out[Onum + index]) * (1 + out[Onum + index]) * per;
+	//del[Dnum + layer + index] = (1 - out[Onum + index]) * (1 + out[Onum + index]) * per;
+	del[Dnum + layer + index] = (1 - out[Onum + index]) * out[Onum + index] * per;
 }
 
 //изменение весов
@@ -63,7 +62,7 @@ __global__ void Deltaw(float* weight, float* del, float* out, float* delw, int D
 
 	for (int i = 0; i < layer; i++) {
 		grad = del[Dnum + i] * out[Onum + index];
-		delw[Wnum + index + n * i] = 0.5 * grad + 0.3 * delw[Wnum + index + n * i];
+		delw[Wnum + index + n * i] = grad + 0.3 * delw[Wnum + index + n * i];
 		weight[Wnum + index + n * i] = weight[Wnum + index + n * i] + delw[Wnum + index + n * i];
 	}
 }
