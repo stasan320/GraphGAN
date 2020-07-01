@@ -5,16 +5,13 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <ctime>
 
-using namespace cv;
-
 const int layer = 2;
 
 int main() {
 	int WeightSum = 0, NeuralSum = 0, n[layer] = { 1, 784 }, Wnum = 0, Onum = 0, Dnum = 0, dop = 0;
 	float* del, * delw, * weight, * out, * Inp, * Oout, pixel = 0;
 	clock_t t1;
-	
-	Mat result(28, 28, CV_8UC1);
+	cv::Mat result(28, 28, CV_8UC1);
 
 	for (int i = 0; i < layer; i++)
 		NeuralSum = n[i] + NeuralSum;
@@ -49,17 +46,23 @@ int main() {
 	for (int ad = 0; ad < 1; ad++) {
 		for (int num = 0; num < 500; num++) {
 			for (int k = 0; k < 2; k++) {
-				Mat image = imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k * 6) + "\\" + std::to_string(1 + k * 12) + ".png");
+				cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k * 6) + "\\" + std::to_string(1 + k * 12) + ".png");
 				for (int i = 0; i < 28; i++) {
 					for (int j = 0; j < 28; j++) {
 						float per = 0;
-						per = image.at<Vec3b>(i, j)[0];
+						per = image.at<cv::Vec3b>(i, j)[0];
 						per = per / 255;
 						outO[i * 28 + j] = per;
 					}
 				}
 				cudaMemcpy(Oout, outO, n[layer - 1] * sizeof(float), cudaMemcpyHostToDevice);
-				
+				/*InputDataArr[0] = 1 - k;
+				InputDataArr[1] = k;
+				cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
+				InputData << <n[0], 1 >> > (Inp, out, n[0]);
+				outO[0] = k;
+				cudaMemcpy(Oout, outO, n[layer - 1] * sizeof(float), cudaMemcpyHostToDevice);*/
+
 				//Clayer << < 49, 1 >> > (weight, out, n[0]);
 				for (int i = 0; i < (layer - 1); i++) {
 					Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);										//int layer, int Wnum, int Onum, float* weight, float* out
@@ -106,15 +109,18 @@ int main() {
 						result.at<uchar>(i, j) = per;
 					}
 				}
-				imshow("admin", result);
-				waitKey(1);
+				cv::imshow("admin", result);
+				cv::waitKey(1);
 				Onum = 0;
 			}
 		}
 
 	}
 
+	std::cout << "Time " << clock() - t1 << std::endl;
+
 	for (int i = 0; i < 100; i++) {
+		//InputDataArr[0] = 0.524;
 		std::cin >> InputDataArr[0];
 		cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
 		InputData << <n[0], 1 >> > (Inp, out, n[0]);
@@ -134,10 +140,9 @@ int main() {
 				result.at<uchar>(i, j) = per;
 			}
 		}
-		imshow("admin", result);
-		waitKey(1);
+		cv::imshow("admin", result);
+		cv::waitKey(1);
 		Onum = 0;
 		Wnum = 0;
 	}
-	std::cout << "Time: " << clock() - t1 << std::endl;
 }
