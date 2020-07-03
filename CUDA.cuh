@@ -70,6 +70,39 @@ __global__ void Deltaw(float* weight, float* del, float* out, float* delw, int D
 	}
 }
 
+
+void Iteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del) {
+	int Wnum = 0, Onum = 0, Dnum = 0;
+
+	for (int i = 0; i < (layer - 1); i++) {
+		Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);										//int layer, int Wnum, int Onum, float* weight, float* out
+		Wnum = Wnum + n[i] * n[i + 1];
+		Onum = Onum + n[i];
+	}
+
+	Onum = NeuralSum - n[layer - 1];
+	Delta << <n[layer - 1], 1 >> > (Oout, out, del, Onum, n[layer - 1]);
+	Wnum = WeightSum;
+
+	for (int j = 0; j < layer - 1; j++) {
+		Onum = Onum - n[layer - 2 - j];
+		Wnum = Wnum - n[layer - 2 - j] * n[layer - 1 - j];
+		DeltaN << <n[layer - 2 - j], 1 >> > (Dnum, Wnum, Onum, del, weight, out, n[layer - 1 - j], n[layer - 2 - j]);					    //int Dnum, int Wnum, int Onum, float* del, float* weight, float* out
+		Dnum = Dnum + n[layer - 1 - j];
+	}
+
+	Wnum = WeightSum;
+	Dnum = 0;
+	Onum = NeuralSum - n[layer - 1];
+
+	for (int j = 0; j < layer - 1; j++) {
+		Onum = Onum - n[layer - 2 - j];
+		Wnum = Wnum - n[layer - 1 - j] * n[layer - 2 - j];
+		Deltaw << < n[layer - 2 - j], 1 >> > (weight, del, out, delw, Dnum, Onum, Wnum, n[layer - 1 - j], n[layer - 2 - j]);				//float* weight, float* del, float* out, float* delw, int Dnum, int Onum, int Wnum, int layer, int n
+		Dnum = Dnum + n[layer - 1 - j];
+	}
+}
+
 /*-------------------работает-------------------*/
 
 __global__ void Clayer(float* weight, float* out, int Onum) {
