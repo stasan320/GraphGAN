@@ -5,12 +5,13 @@
 
 #include "func.cuh"
 
-const int layer = 3;
+const int layer = 5;
 
 int main() {
-	int WeightSum = 0, NeuralSum = 0, n[layer] = { 784, 15, 10 /*enter*/}, Wnum = 0, Onum = 0, Dnum = 0, dop = 0;
-	float* del, * delw, * weight, * out, * Inp, * Oout, pixel = 0, max = 10, min = -10;
+	int WeightSum = 0, NeuralSum = 0, n[layer] = { 784, 512, 128, 32, 10 }, Wnum = 0, Onum = 0, Dnum = 0, dop = 1;
+	float* del, * delw, * weight, * out, * Inp, * Oout, max = 10, min = -10;
 	clock_t t1;
+	std::string filename;
 
 	for (int i = 0; i < layer; i++)
 		NeuralSum = n[i] + NeuralSum;
@@ -37,36 +38,39 @@ int main() {
 	WeightGen << <WeightSum, 1 >> > (weight, WeightSum);
 	DelwNull << < WeightSum, 1 >> > (delw, WeightSum);
 
-	//cv::Mat image = cv::imread("E:\\1.jpg");
-	cv::Mat result(1200, 1200, CV_8UC1);
-	cv::Mat result(image.rows, image.cols, CV_8UC1);
-
+	cv::Mat result(28, 28, CV_8UC1);
 	t1 = clock();
-	for (int num = 0; num < 500; num++) {
-		for (int k = 0; k < 10; k++) {
-			cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(num) + ").png");
-			OutputData(n, layer, outO, Oout, image, result, InputDataArr, Inp, out);
-			NumberInp(out, image, InputDataArr, n, layer);
-			Iteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del);
-			Out(NeuralSum, layer, n, weights, out, image, result);
+	for (int adm = 0; adm < 100; adm++) {
+		std::cout << "Iter #" << adm << std::endl;
+		for (int num = 0; num < 5000; num++) {
+			for (int k = 0; k < 10; k++) {
+				cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(num + 1) + ").png");
+				//OutputData(n, layer, outO, Oout, image, result, InputDataArr, Inp, out);
+				outO[k] = 1;
+				cudaMemcpy(Oout, outO, n[layer - 1] * sizeof(float), cudaMemcpyHostToDevice);
+
+				NumberInp(out, image, InputDataArr, n, layer, Inp);
+				Iteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del);
+				//Out(NeuralSum, layer, n, weights, out, image, result);
+				outO[k] = 0;
+			}
 		}
 	}
 
 	std::cout << "Time " << clock() - t1 << std::endl;
 
 	for (int i = 0; i < 100; i++) {
-		//InputDataArr[0] = 0.524;
-		std::cin >> InputDataArr[0];
-		cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
-		InputData << <n[0], 1 >> > (Inp, out, n[0]);
+		int Wnum = 0, Onum = 0, Dnum = 0;
+		std::cin >> filename;
+		cv::Mat image = cv::imread(filename);
+		NumberInp(out, image, InputDataArr, n, layer, Inp);
+		cv::imshow("Out", image);
 		for (int i = 0; i < (layer - 1); i++) {
-			Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);										//int layer, int Wnum, int Onum, float* weight, float* out
+			Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);
 			Wnum = Wnum + n[i] * n[i + 1];
 			Onum = Onum + n[i];
 		}
 
-		Out(NeuralSum, layer, n, weights, out, result, result);
-		Onum = 0;
-		Wnum = 0;
+		NumberOut(out, weights, n, layer, NeuralSum);
 	}
 }
