@@ -8,10 +8,9 @@
 const int layer = 3;
 
 int main() {
-	int WeightSum = 0, NeuralSum = 0, n[layer] = { 1, 30, 784 }, Wnum = 0, Onum = 0, Dnum = 0, dop = 0;
+	int WeightSum = 0, NeuralSum = 0, n[layer] = { 1, 10, 609750 }, Wnum = 0, Onum = 0, Dnum = 0, dop = 0;
 	float* del, * delw, * weight, * out, * Inp, * Oout, pixel = 0;
 	clock_t t1;
-	cv::Mat result(28, 28, CV_8UC1);
 
 	for (int i = 0; i < layer; i++)
 		NeuralSum = n[i] + NeuralSum;
@@ -38,15 +37,16 @@ int main() {
 	WeightGen << <WeightSum, 1 >> > (weight, WeightSum);
 	DelwNull << < WeightSum, 1 >> > (delw, WeightSum);
 
-	InputDataArr[0] = 0.524;
-	//InputDataArr[1] = 0.524;
-	cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
 	InputData << <n[0], 1 >> > (Inp, out, n[0]);
+	cv::Mat image = cv::imread("E:\\1.jpg");
+	cv::Mat result(image.rows, image.cols, CV_8UC1);
 
 	t1 = clock();
 		for (int num = 0; num < 500; num++) {
 			for (int k = 0; k < 2; k++) {
-				cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k * 6) + "\\" + std::to_string(1 + k * 12) + ".png");
+				//cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k * 6) + "\\" + std::to_string(1 + k * 12) + ".png");
+				//cv::imshow("Out", image);
+				//cv::waitKey(100);
 				Input(n, layer, outO, Oout, image);
 				Iteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del);
 				Out(NeuralSum, layer, n, weights, out, result);
