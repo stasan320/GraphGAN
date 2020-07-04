@@ -125,23 +125,30 @@ void Iteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, f
 	}
 }
 
-void Input(int* n, int layer, float* outO, float* Oout, cv::Mat image) {
+void OutputData(int* n, int layer, float* outO, float* Oout, cv::Mat image, cv::Mat result, float* InputDataArr, float* Inp, float* out) {
+	float max = 2, min = 0;
+	for (int i = 0; i < n[0]; i++) {
+		InputDataArr[i] = (float)(rand()) / RAND_MAX * (max - min) + min;
+	}
+	cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
+	InputData << <n[0], 1 >> > (Inp, out, n[0]);
+
 	for (int i = 0; i < image.rows; i++) {
 		for (int j = 0; j < image.cols; j++) {
 			float per = 0;
 			per = image.at<cv::Vec3b>(i, j)[0];
 			per = per / 255;
-			outO[i * image.cols + j] = per;
+			outO[i * result.cols + j] = per;
 		}
 	}
 	cudaMemcpy(Oout, outO, n[layer - 1] * sizeof(float), cudaMemcpyHostToDevice);
 }
 
-void Out(int NeuralSum, int layer, int* n, float* weights, float* out, cv::Mat result) {
+void Out(int NeuralSum, int layer, int* n, float* weights, float* out, cv::Mat image, cv::Mat result) {
 	int Onum = NeuralSum - n[layer - 1];
 	cudaMemcpy(weights, out, NeuralSum * sizeof(float), cudaMemcpyDeviceToHost);
-	for (int i = 0; i < result.rows; i++) {
-		for (int j = 0; j < result.cols; j++) {
+	for (int i = 0; i < image.rows; i++) {
+		for (int j = 0; j < image.cols; j++) {
 			float per = 0;
 			per = weights[Onum + i * result.cols + j];
 			per = per * 255;
