@@ -8,8 +8,8 @@
 const int layer = 3;
 
 int main() {
-	int WeightSum = 0, NeuralSum = 0, n[layer] = { 1, 10, 609750 }, Wnum = 0, Onum = 0, Dnum = 0, dop = 0;
-	float* del, * delw, * weight, * out, * Inp, * Oout, pixel = 0;
+	int WeightSum = 0, NeuralSum = 0, n[layer] = { 784, 15, 10 /*enter*/}, Wnum = 0, Onum = 0, Dnum = 0, dop = 0;
+	float* del, * delw, * weight, * out, * Inp, * Oout, pixel = 0, max = 10, min = -10;
 	clock_t t1;
 
 	for (int i = 0; i < layer; i++)
@@ -20,7 +20,7 @@ int main() {
 		WeightSum = n[i] * n[i + 1] + WeightSum;
 	std::cout << "Weights: " << WeightSum << std::endl;
 
-	float* weights = new float[WeightSum];
+	float* weights = new float[NeuralSum];
 	float* InputDataArr = new float[n[0]];
 	float* outO = new float[n[layer - 1]];
 
@@ -37,21 +37,20 @@ int main() {
 	WeightGen << <WeightSum, 1 >> > (weight, WeightSum);
 	DelwNull << < WeightSum, 1 >> > (delw, WeightSum);
 
-	InputData << <n[0], 1 >> > (Inp, out, n[0]);
-	cv::Mat image = cv::imread("E:\\1.jpg");
+	//cv::Mat image = cv::imread("E:\\1.jpg");
+	cv::Mat result(1200, 1200, CV_8UC1);
 	cv::Mat result(image.rows, image.cols, CV_8UC1);
 
 	t1 = clock();
-		for (int num = 0; num < 500; num++) {
-			for (int k = 0; k < 2; k++) {
-				//cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k * 6) + "\\" + std::to_string(1 + k * 12) + ".png");
-				//cv::imshow("Out", image);
-				//cv::waitKey(100);
-				Input(n, layer, outO, Oout, image);
-				Iteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del);
-				Out(NeuralSum, layer, n, weights, out, result);
-			}
+	for (int num = 0; num < 500; num++) {
+		for (int k = 0; k < 10; k++) {
+			cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(num) + ").png");
+			OutputData(n, layer, outO, Oout, image, result, InputDataArr, Inp, out);
+			NumberInp(out, image, InputDataArr, n, layer);
+			Iteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del);
+			Out(NeuralSum, layer, n, weights, out, image, result);
 		}
+	}
 
 	std::cout << "Time " << clock() - t1 << std::endl;
 
@@ -66,7 +65,7 @@ int main() {
 			Onum = Onum + n[i];
 		}
 
-		Out(NeuralSum, layer, n, weights, out, result);
+		Out(NeuralSum, layer, n, weights, out, result, result);
 		Onum = 0;
 		Wnum = 0;
 	}
