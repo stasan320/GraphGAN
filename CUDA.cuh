@@ -19,8 +19,9 @@ __global__ void DelwNull(float* delw, int sum) {
 //присваивание входов
 __global__ void InputData(float* data, float* out, int size) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
+
 	if (index < size)
-		out[index] = data[index];
+		out[index] = 0.542 + (exp2f(2 * index) - 1) / (exp2f(2 * index) + 1);
 }
 
 //сумматор
@@ -124,30 +125,31 @@ void Iteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, f
 	}
 }
 
+void Input(int* n, int layer, float* outO, float* Oout, cv::Mat image) {
+	for (int i = 0; i < image.rows; i++) {
+		for (int j = 0; j < image.cols; j++) {
+			float per = 0;
+			per = image.at<cv::Vec3b>(i, j)[0];
+			per = per / 255;
+			outO[i * image.cols + j] = per;
+		}
+	}
+	cudaMemcpy(Oout, outO, n[layer - 1] * sizeof(float), cudaMemcpyHostToDevice);
+}
+
 void Out(int NeuralSum, int layer, int* n, float* weights, float* out, cv::Mat result) {
 	int Onum = NeuralSum - n[layer - 1];
 	cudaMemcpy(weights, out, NeuralSum * sizeof(float), cudaMemcpyDeviceToHost);
-	for (int i = 0; i < 28; i++) {
-		for (int j = 0; j < 28; j++) {
+	for (int i = 0; i < result.rows; i++) {
+		for (int j = 0; j < result.cols; j++) {
 			float per = 0;
-			per = weights[Onum + i * 28 + j];
-			per = ceil(per * 255);
+			per = weights[Onum + i * result.cols + j];
+			per = per * 255;
+			per = ceil(per);
 			//std::cout << per << std::endl;
 			result.at<uchar>(i, j) = per;
 		}
 	}
 	cv::imshow("Out", result);
 	cv::waitKey(1);
-}
-
-void Input(int* n, int layer, float* outO, float* Oout, cv::Mat image) {
-	for (int i = 0; i < 28; i++) {
-		for (int j = 0; j < 28; j++) {
-			float per = 0;
-			per = image.at<cv::Vec3b>(i, j)[0];
-			per = per / 255;
-			outO[i * 28 + j] = per;
-		}
-	}
-	cudaMemcpy(Oout, outO, n[layer - 1] * sizeof(float), cudaMemcpyHostToDevice);
 }
