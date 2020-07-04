@@ -70,6 +70,27 @@ __global__ void Deltaw(float* weight, float* del, float* out, float* delw, int D
 	}
 }
 
+/*-------------------работает-------------------*/
+
+__global__ void Clayer(float* weight, float* out, int Onum) {
+	int index = blockIdx.x + blockIdx.y * gridDim.x;
+
+	float net = 0;
+	for (int i = 0; i < 16; i++)
+		net = net + weight[index * 16 + i] * out[index * 16 + i];
+	out[Onum + index] = (exp2f(2 * net) - 1) / (exp2f(2 * net) + 1);
+}
+
+__global__ void ConvDeltaW(float* weight, float* out, float* del, float* delw, int Dnum, int n) {
+	int index = blockIdx.x + blockIdx.y * gridDim.x;
+	float grad = 0;
+
+	for (int i = 0; i < n; i++) {
+		grad = del[Dnum + index] * out[index * n + i];
+		delw[index * n + i] = 0.5 * grad + 0.3 * delw[index * n + i];
+		weight[index * n + i] = weight[index * n + i] + delw[index * n + i];
+	}
+}
 
 void Iteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del) {
 	int Wnum = 0, Onum = 0, Dnum = 0;
@@ -103,24 +124,30 @@ void Iteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, f
 	}
 }
 
-/*-------------------работает-------------------*/
-
-__global__ void Clayer(float* weight, float* out, int Onum) {
-	int index = blockIdx.x + blockIdx.y * gridDim.x;
-
-	float net = 0;
-	for (int i = 0; i < 16; i++)
-		net = net + weight[index * 16 + i] * out[index * 16 + i];
-	out[Onum + index] = (exp2f(2 * net) - 1) / (exp2f(2 * net) + 1);
+void Out(int NeuralSum, int layer, int* n, float* weights, float* out, cv::Mat result) {
+	int Onum = NeuralSum - n[layer - 1];
+	cudaMemcpy(weights, out, NeuralSum * sizeof(float), cudaMemcpyDeviceToHost);
+	for (int i = 0; i < 28; i++) {
+		for (int j = 0; j < 28; j++) {
+			float per = 0;
+			per = weights[Onum + i * 28 + j];
+			per = ceil(per * 255);
+			//std::cout << per << std::endl;
+			result.at<uchar>(i, j) = per;
+		}
+	}
+	cv::imshow("Out", result);
+	cv::waitKey(1);
 }
 
-__global__ void ConvDeltaW(float* weight, float* out, float* del, float* delw, int Dnum, int n) {
-	int index = blockIdx.x + blockIdx.y * gridDim.x;
-	float grad = 0;
-
-	for (int i = 0; i < n; i++) {
-		grad = del[Dnum + index] * out[index * n + i];
-		delw[index * n + i] = 0.5 * grad + 0.3 * delw[index * n + i];
-		weight[index * n + i] = weight[index * n + i] + delw[index * n + i];
+void Input(int* n, int layer, float* outO, float* Oout, cv::Mat image) {
+	for (int i = 0; i < 28; i++) {
+		for (int j = 0; j < 28; j++) {
+			float per = 0;
+			per = image.at<cv::Vec3b>(i, j)[0];
+			per = per / 255;
+			outO[i * 28 + j] = per;
+		}
 	}
+	cudaMemcpy(Oout, outO, n[layer - 1] * sizeof(float), cudaMemcpyHostToDevice);
 }
