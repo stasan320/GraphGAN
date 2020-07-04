@@ -1,14 +1,14 @@
-#include <iostream>
-#include "func.cuh"
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <iostream>
 #include <ctime>
+
+#include "func.cuh"
 
 const int layer = 3;
 
 int main() {
-	int WeightSum = 0, NeuralSum = 0, n[layer] = { 2, 2, 784 }, Wnum = 0, Onum = 0, Dnum = 0, dop = 0;
+	int WeightSum = 0, NeuralSum = 0, n[layer] = { 1, 30, 784 }, Wnum = 0, Onum = 0, Dnum = 0, dop = 0;
 	float* del, * delw, * weight, * out, * Inp, * Oout, pixel = 0;
 	clock_t t1;
 	cv::Mat result(28, 28, CV_8UC1);
@@ -39,49 +39,24 @@ int main() {
 	DelwNull << < WeightSum, 1 >> > (delw, WeightSum);
 
 	InputDataArr[0] = 0.524;
-	InputDataArr[1] = 0.524;
+	//InputDataArr[1] = 0.524;
 	cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
 	InputData << <n[0], 1 >> > (Inp, out, n[0]);
 
 	t1 = clock();
-	for (int ad = 0; ad < 1; ad++) {
-		for (int num = 0; num < 5000; num++) {
+		for (int num = 0; num < 500; num++) {
 			for (int k = 0; k < 2; k++) {
 				cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k * 6) + "\\" + std::to_string(1 + k * 12) + ".png");
-				for (int i = 0; i < 28; i++) {
-					for (int j = 0; j < 28; j++) {
-						float per = 0;
-						per = image.at<cv::Vec3b>(i, j)[0];
-						per = per / 255;
-						outO[i * 28 + j] = per;
-					}
-				}
-				cudaMemcpy(Oout, outO, n[layer - 1] * sizeof(float), cudaMemcpyHostToDevice);
-				
+				Input(n, layer, outO, Oout, image);
 				Iteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del);
-				
-				Onum = NeuralSum - n[layer - 1];
-				cudaMemcpy(weights, out, NeuralSum * sizeof(float), cudaMemcpyDeviceToHost);
-				for (int i = 0; i < 28; i++) {
-					for (int j = 0; j < 28; j++) {
-						float per = 0;
-						per = weights[Onum + i * 28 + j];
-						per = ceil(per * 255);
-						//std::cout << per << std::endl;
-						result.at<uchar>(i, j) = per;
-					}
-				}
-				cv::imshow("admin", result);
-				cv::waitKey(1000);
-				Onum = 0;
+				Out(NeuralSum, layer, n, weights, out, result);
 			}
 		}
-
-	}
 
 	std::cout << "Time " << clock() - t1 << std::endl;
 
 	for (int i = 0; i < 100; i++) {
+		//InputDataArr[0] = 0.524;
 		std::cin >> InputDataArr[0];
 		cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
 		InputData << <n[0], 1 >> > (Inp, out, n[0]);
@@ -91,18 +66,7 @@ int main() {
 			Onum = Onum + n[i];
 		}
 
-		Onum = NeuralSum - n[layer - 1];
-		cudaMemcpy(weights, out, NeuralSum * sizeof(float), cudaMemcpyDeviceToHost);
-		for (int i = 0; i < 28; i++) {
-			for (int j = 0; j < 28; j++) {
-				float per = 0;
-				per = weights[Onum + i * 28 + j];
-				per = ceil(per * 255);
-				result.at<uchar>(i, j) = per;
-			}
-		}
-		cv::imshow("admin", result);
-		cv::waitKey(1);
+		Out(NeuralSum, layer, n, weights, out, result);
 		Onum = 0;
 		Wnum = 0;
 	}
