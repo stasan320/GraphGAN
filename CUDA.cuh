@@ -21,7 +21,7 @@ __global__ void InputData(float* data, float* out, int size) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 
 	if (index < size)
-		out[index] = 0.542 + (exp2f(2 * index) - 1) / (exp2f(2 * index) + 1);
+		out[index] = data[index];
 }
 
 //сумматор
@@ -33,8 +33,8 @@ __global__ void Sumfunc(int layer, int Wnum, int Onum, float* weight, float* out
 		for (int i = 0; i < layer; i++) {
 			net = net + weight[Wnum + index * layer + i] * out[Onum + i];
 		}
-		out[Onum + layer + index] = 1 / (1 + exp2f(-net));
-		//out[Onum + layer + index] = (exp2f(2 * net) - 1) / (exp2f(2 * net) + 1);
+		//out[Onum + layer + index] = 1 / (1 + exp2f(-net));
+		out[Onum + layer + index] = (exp2f(2 * net) - 1) / (exp2f(2 * net) + 1);
 	//}
 }
 
@@ -43,8 +43,8 @@ __global__ void Delta(float* outO, float* out, float* del, int Onum, int size) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 
 	//if (index < size)
-	del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
-	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
+	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
+	del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
 }
 
 //последующие дельты
@@ -55,8 +55,8 @@ __global__ void DeltaN(int Dnum, int Wnum, int Onum, float* del, float* weight, 
 	for (int i = 0; i < layer; i++) {
 		per = per + del[Dnum + i] * weight[Wnum + index + n * i];
 	}
-	del[Dnum + layer + index] = (1 - out[Onum + index]) * (1 + out[Onum + index]) * per;
-	//del[Dnum + layer + index] = (1 - out[Onum + index]) * out[Onum + index] * per;
+	//del[Dnum + layer + index] = (1 - out[Onum + index]) * (1 + out[Onum + index]) * per;
+	del[Dnum + layer + index] = (1 - out[Onum + index]) * out[Onum + index] * per;
 }
 
 //изменение весов
@@ -93,36 +93,37 @@ __global__ void ConvDeltaW(float* weight, float* out, float* del, float* delw, i
 	}
 }
 
+/*-------------------host functions-------------------*/
+
 void Iteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del) {
 	int Wnum = 0, Onum = 0, Dnum = 0;
+		for (int i = 0; i < (layer - 1); i++) {
+			Sumfunc << <1, n[i + 1] >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);
+			Wnum = Wnum + n[i] * n[i + 1];
+			Onum = Onum + n[i];
+		}
 
-	for (int i = 0; i < (layer - 1); i++) {
-		Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);										//int layer, int Wnum, int Onum, float* weight, float* out
-		Wnum = Wnum + n[i] * n[i + 1];
-		Onum = Onum + n[i];
-	}
+		Onum = NeuralSum - n[layer - 1];
+		Delta << <1, n[layer - 1] >> > (Oout, out, del, Onum, n[layer - 1]);
+		Wnum = WeightSum;
 
-	Onum = NeuralSum - n[layer - 1];
-	Delta << <n[layer - 1], 1 >> > (Oout, out, del, Onum, n[layer - 1]);
-	Wnum = WeightSum;
+		for (int j = 0; j < layer - 1; j++) {
+			Onum = Onum - n[layer - 2 - j];
+			Wnum = Wnum - n[layer - 2 - j] * n[layer - 1 - j];
+			DeltaN << <1, n[layer - 2 - j] >> > (Dnum, Wnum, Onum, del, weight, out, n[layer - 1 - j], n[layer - 2 - j]);
+			Dnum = Dnum + n[layer - 1 - j];
+		}
 
-	for (int j = 0; j < layer - 1; j++) {
-		Onum = Onum - n[layer - 2 - j];
-		Wnum = Wnum - n[layer - 2 - j] * n[layer - 1 - j];
-		DeltaN << <n[layer - 2 - j], 1 >> > (Dnum, Wnum, Onum, del, weight, out, n[layer - 1 - j], n[layer - 2 - j]);					    //int Dnum, int Wnum, int Onum, float* del, float* weight, float* out
-		Dnum = Dnum + n[layer - 1 - j];
-	}
+		Wnum = WeightSum;
+		Dnum = 0;
+		Onum = NeuralSum - n[layer - 1];
 
-	Wnum = WeightSum;
-	Dnum = 0;
-	Onum = NeuralSum - n[layer - 1];
-
-	for (int j = 0; j < layer - 1; j++) {
-		Onum = Onum - n[layer - 2 - j];
-		Wnum = Wnum - n[layer - 1 - j] * n[layer - 2 - j];
-		Deltaw << < n[layer - 2 - j], 1 >> > (weight, del, out, delw, Dnum, Onum, Wnum, n[layer - 1 - j], n[layer - 2 - j]);				//float* weight, float* del, float* out, float* delw, int Dnum, int Onum, int Wnum, int layer, int n
-		Dnum = Dnum + n[layer - 1 - j];
-	}
+		for (int j = 0; j < layer - 1; j++) {
+			Onum = Onum - n[layer - 2 - j];
+			Wnum = Wnum - n[layer - 1 - j] * n[layer - 2 - j];
+			Deltaw << <1, n[layer - 2 - j] >> > (weight, del, out, delw, Dnum, Onum, Wnum, n[layer - 1 - j], n[layer - 2 - j]);
+			Dnum = Dnum + n[layer - 1 - j];
+		}
 }
 
 void OutputData(int* n, int layer, float* outO, float* Oout, cv::Mat image, cv::Mat result, float* InputDataArr, float* Inp, float* out) {
@@ -159,4 +160,26 @@ void Out(int NeuralSum, int layer, int* n, float* weights, float* out, cv::Mat i
 	}
 	cv::imshow("Out", result);
 	cv::waitKey(1);
+}
+
+void NumberInp(float* out, cv::Mat image, float* InputDataArr, int* n, int layer, float* Inp) {
+	for (int i = 0; i < image.rows; i++) {
+		for (int j = 0; j < image.cols; j++) {
+			float per = 0;
+			per = image.at<cv::Vec3b>(i, j)[1];
+			per = per / 255;
+			InputDataArr[i * image.cols + j] = per;
+		}
+	}
+	cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
+	InputData << < n[0], 1 >> > (Inp, out, n[0]);
+}
+
+void NumberOut(float* out, float* weights, int* n, int layer, int NeuralSum) {
+	cudaMemcpy(weights, out, NeuralSum * sizeof(float), cudaMemcpyDeviceToHost);
+
+	for (int i = NeuralSum - n[layer - 1]; i < NeuralSum; i++) {
+		std::cout << weights[i] << std::endl;
+	}
+	std::cout << std::endl;
 }
