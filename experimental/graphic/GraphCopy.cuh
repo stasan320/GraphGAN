@@ -128,23 +128,47 @@ void Out(int NeuralSum, int layer, int* n, float* weights, float* out, cv::Mat r
 	int Onum = NeuralSum - n[layer - 1];
 	cudaMemcpy(weights, out, NeuralSum * sizeof(float), cudaMemcpyDeviceToHost);
 
-	for (int i = 0; i < 28; i++) {
-		for (int j = 0; j < 28; j++) {
-			for (int i = 0; i < result.rows; i++) {
-				for (int j = 0; j < result.cols; j++) {
-					float per = 0;
-					per = weights[Onum + i * 28 + j];
-					per = ceil(per * 255);
-					per = weights[Onum + i * result.cols + j];
-					per = per * 255;
-					per = ceil(per);
-					//std::cout << per << std::endl;
-					result.at<uchar>(i, j) = per;
-				}
-			}
-			cv::imshow("Out", result);
-			cv::waitKey(1);
-		}
 
+	for (int i = 0; i < result.rows; i++) {
+		for (int j = 0; j < result.cols; j++) {
+			float per = 0;
+			per = weights[Onum + i * result.cols + j];
+			per = per * 255;
+			per = ceil(per);
+			//std::cout << per << std::endl;
+			result.at<uchar>(i, j) = per;
+		}
+	}
+	cv::imshow("Out", result);
+	cv::waitKey(1);
+}
+
+void DataCheck(int WeightSum, float* weight, float* delw) {
+	std::string filename;
+
+	std::ifstream Fconfig("E:\\Foton\\ngnl_data\\backup\\config.txt");
+	Fconfig >> filename;
+	if (std::stoi(filename) == 1) {
+		Fconfig.close();
+		float* Bweight = new float[WeightSum];
+		float* Bdelw = new float[WeightSum];
+		std::ifstream fweight("E:\\Foton\\ngnl_data\\backup\\weight.dat");
+		std::ifstream fdelw("E:\\Foton\\ngnl_data\\backup\\delw.dat");
+
+		for (int i = 0; i < WeightSum; i++) {
+			fweight >> Bweight[i];
+			fdelw >> Bdelw[i];
+		}
+		std::cout << "Data upload" << std::endl;
+
+		cudaMemcpy(weight, Bweight, WeightSum * sizeof(float), cudaMemcpyHostToDevice);
+		cudaMemcpy(delw, Bdelw, WeightSum * sizeof(float), cudaMemcpyHostToDevice);
+		delete[] Bweight;
+		delete[] Bdelw;
+	}
+	else {
+		std::ofstream config("E:\\Foton\\ngnl_data\\backup\\config.txt");
+		config << 1;
+		config.close();
 	}
 }
