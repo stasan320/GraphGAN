@@ -1,4 +1,1 @@
-CUDA GAN, working
-must fix CUDA threadId functions 
-update WeightGen
-+сегментация изображения на входе
+CUDA GAN, working. I must fix CUDA threadId functions + update WeightGen + сегментация изображения на входе
