@@ -7,6 +7,7 @@ __global__ void DelwNull(float* delw, int sum) {
 	if (index < sum)
 		delw[index] = 0;
 }
+
 //присваивание входов
 __global__ void InputData(float* data, float* out, int size) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
@@ -27,6 +28,7 @@ __global__ void Sumfunc(int layer, int Wnum, int Onum, float* weight, float* out
 	out[Onum + layer + index] = 1 / (1 + exp2f(-net));
 	//out[Onum + layer + index] = (exp2f(2 * net) - 1) / (exp2f(2 * net) + 1);
 }
+
 //первая дельта
 __global__ void Delta(float* outO, float* out, float* del, int Onum, int size) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
@@ -34,6 +36,7 @@ __global__ void Delta(float* outO, float* out, float* del, int Onum, int size) {
 	del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
 	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
 }
+
 //последующие дельты
 __global__ void DeltaN(int Dnum, int Wnum, int Onum, float* del, float* weight, float* out, int layer, int n) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
@@ -44,6 +47,7 @@ __global__ void DeltaN(int Dnum, int Wnum, int Onum, float* del, float* weight, 
 	//del[Dnum + layer + index] = (1 - out[Onum + index]) * (1 + out[Onum + index]) * per;
 	del[Dnum + layer + index] = (1 - out[Onum + index]) * out[Onum + index] * per;
 }
+
 //изменение весов
 __global__ void Deltaw(float* weight, float* del, float* out, float* delw, int Dnum, int Onum, int Wnum, int layer, int n) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
@@ -55,7 +59,9 @@ __global__ void Deltaw(float* weight, float* del, float* out, float* delw, int D
 		weight[Wnum + index + n * i] = weight[Wnum + index + n * i] + delw[Wnum + index + n * i];
 	}
 }
+
 /*-------------------работает-------------------*/
+
 __global__ void Clayer(float* weight, float* out, int Onum) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	float net = 0;
@@ -63,6 +69,7 @@ __global__ void Clayer(float* weight, float* out, int Onum) {
 		net = net + weight[index * 16 + i] * out[index * 16 + i];
 	out[Onum + index] = (exp2f(2 * net) - 1) / (exp2f(2 * net) + 1);
 }
+
 __global__ void ConvDeltaW(float* weight, float* out, float* del, float* delw, int Dnum, int n) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	float grad = 0;
@@ -136,9 +143,9 @@ void Out(int NeuralSum, int layer, int* n, float* out, cv::Mat result) {
 	}
 	cv::imshow("Out", result);
 	cv::waitKey(1);
+	delete[] weights;
 }
 
-//инициализация весов
 void WeightGen(float* weight, float* delw, int WeightSum) {
 	float* data = new float[WeightSum];
 	float max = 3, min = -3;
@@ -152,10 +159,9 @@ void WeightGen(float* weight, float* delw, int WeightSum) {
 	delete[] data;
 }
 
-//инициализация шума
 void InputGen(int n, float* Inp, float* out) {
 	float* data = new float[n];
-	float max = 1, min = 0;
+	float max = 1, min = -1;
 	srand(static_cast<unsigned int>(time(0)));
 
 	for (int i = 0; i < n; i++) {
@@ -163,6 +169,7 @@ void InputGen(int n, float* Inp, float* out) {
 	}
 	cudaMemcpy(Inp, data, n * sizeof(float), cudaMemcpyHostToDevice);
 	InputData << <n, 1 >> > (Inp, out, n);
+	delete[] data;
 }
 
 void DataCheck(int WeightSum, float* weight, float* delw) {
@@ -181,7 +188,7 @@ void DataCheck(int WeightSum, float* weight, float* delw) {
 			fweight >> Bweight[i];
 			fdelw >> Bdelw[i];
 		}
-		std::cout << "Data upload" << std::endl;
+		std::cout << "Model upload" << std::endl;
 
 		cudaMemcpy(weight, Bweight, WeightSum * sizeof(float), cudaMemcpyHostToDevice);
 		cudaMemcpy(delw, Bdelw, WeightSum * sizeof(float), cudaMemcpyHostToDevice);
