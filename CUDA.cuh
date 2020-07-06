@@ -12,7 +12,7 @@ __global__ void InputData(float* data, float* out, int size) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 
 	if (index < size)
-		out[index] = 0.542;
+		out[index] = data[index];
 	//out[index] = 0.542 + (exp2f(2 * index) - 1) / (exp2f(2 * index) + 1);
 }
 
@@ -41,8 +41,8 @@ __global__ void DeltaN(int Dnum, int Wnum, int Onum, float* del, float* weight, 
 	for (int i = 0; i < layer; i++) {
 		per = per + del[Dnum + i] * weight[Wnum + index + n * i];
 	}
-	del[Dnum + layer + index] = (1 - out[Onum + index]) * (1 + out[Onum + index]) * per;
-	//del[Dnum + layer + index] = (1 - out[Onum + index]) * out[Onum + index] * per;
+	//del[Dnum + layer + index] = (1 - out[Onum + index]) * (1 + out[Onum + index]) * per;
+	del[Dnum + layer + index] = (1 - out[Onum + index]) * out[Onum + index] * per;
 }
 //изменение весов
 __global__ void Deltaw(float* weight, float* del, float* out, float* delw, int Dnum, int Onum, int Wnum, int layer, int n) {
@@ -51,7 +51,7 @@ __global__ void Deltaw(float* weight, float* del, float* out, float* delw, int D
 
 	for (int i = 0; i < layer; i++) {
 		grad = del[Dnum + i] * out[Onum + index];
-		delw[Wnum + index + n * i] = grad + 0.3 * delw[Wnum + index + n * i];
+		delw[Wnum + index + n * i] = 0.5 * grad + 0.7 * delw[Wnum + index + n * i];
 		weight[Wnum + index + n * i] = weight[Wnum + index + n * i] + delw[Wnum + index + n * i];
 	}
 }
@@ -68,7 +68,7 @@ __global__ void ConvDeltaW(float* weight, float* out, float* del, float* delw, i
 	float grad = 0;
 	for (int i = 0; i < n; i++) {
 		grad = del[Dnum + index] * out[index * n + i];
-		delw[index * n + i] = 0.5 * grad + 0.3 * delw[index * n + i];
+		delw[index * n + i] =  grad + 0.03 * delw[index * n + i];
 		weight[index * n + i] = weight[index * n + i] + delw[index * n + i];
 	}
 }
@@ -126,24 +126,24 @@ void Out(int NeuralSum, int layer, int* n, float* weights, float* out, cv::Mat r
 		for (int j = 0; j < result.cols; j++) {
 			float per = 0;
 			per = weights[Onum + i * result.cols + j];
-			per = per * 255;
-			per = ceil(per);
-			//std::cout << per << std::endl;
+			per = ceil(per * 255);
 			result.at<uchar>(i, j) = per;
 		}
 	}
 	cv::imshow("Out", result);
-	cv::waitKey(1);
+	cv::waitKey(1000);
 }
 
 //инициализация весов
-void WeightGen(float* weight, int WeightSum) {
+void WeightGen(float* weight, float* delw, int WeightSum) {
 	float* data = new float[WeightSum];
 	float max = 1, min = -1;
+
 	for (int i = 0; i < WeightSum; i++) {
 		data[i] = (float)(rand()) / RAND_MAX * (max - min) + min;
 	}
 	cudaMemcpy(weight, data, WeightSum * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(delw, data, WeightSum * sizeof(float), cudaMemcpyHostToDevice);
 	delete[] data;
 }
 
@@ -171,6 +171,6 @@ void DataCheck(int WeightSum, float* weight, float* delw) {
 		delete[] Bdelw;
 	}
 	else if(std::stoi(filename) == 0) {
-		WeightGen(weight, WeightSum);
+		WeightGen(weight, delw,  WeightSum);
 	}
 }
