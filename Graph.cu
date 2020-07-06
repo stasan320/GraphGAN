@@ -9,7 +9,7 @@
 const int layer = 5;
 
 int main() {
-	int WeightSum = 0, NeuralSum = 0, n[layer] = { 2, 32, 128, 512, 784 }, Wnum = 0, Onum = 0, Dnum = 0, dop;
+	int WeightSum = 0, NeuralSum = 0, n[layer] = { 11, 32, 128, 512, 784 }, Wnum = 0, Onum = 0, Dnum = 0, dop;
 	float* del, * delw, * weight, * Bweight, * out, * Inp, * Oout;
 	clock_t t1;
 	std::string filename;
@@ -44,24 +44,26 @@ int main() {
 	Input(n, layer, outO, Oout, image);
 
 	DataCheck(WeightSum, weight, delw);
+	InputDataArr[10] = 1;
 
 	t1 = clock();
-	for (int adm = 0; adm < 100; adm++) {
+	for (int adm = 0; adm < 1000; adm++) {
 		std::cout << "Iter #" << adm + 1 << std::endl;
-		for (int l = 0; l < 5000; l++) {
-			for (int num = 0; num < 1; num++) {
-				for (int k = 0; k < 2; k++) {
+		for (int l = 0; l < 1; l++) {
+			for (int num = 0; num < 5000; num++) {
+				for (int k = 0; k < 10; k++) {
 					cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(num + 1) + ").png");
 					/*cv::imshow("Out1", image);
 					cv::waitKey(1);*/
 					InputDataArr[k] = 1;
-					cudaMemcpy(Inp, InputData, n[0] * sizeof(float), cudaMemcpyHostToDevice);
+					cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
 					InputData << <n[0], 1 >> > (Inp, out, n[0]);
-					
 					Input(n, layer, outO, Oout, image);
+	
 					Iteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del);
 					//Out(NeuralSum, layer, n, weights, out, result);
-					InputDataArr[k] = 0;
+					InputDataArr[k] = 0.3;
+					//cv::waitKey(1000);
 				}
 			}
 		}
@@ -75,7 +77,6 @@ int main() {
 		for (int i = 0; i < WeightSum; i++) {
 			fweight << Bweight[i] << " ";
 			fdelw << Bdelw[i] << " ";
-			//fout << i << " ";
 		}
 		std::cout << "Backup" << std::endl;
 		delete[] Bweight;
