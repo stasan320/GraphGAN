@@ -6,11 +6,11 @@
 
 #include "func.cuh"
 
-const int layer = 5;
+const int layer = 4;
 
 int main() {
-	int WeightSum = 0, NeuralSum = 0, n[layer] = { 11, 32, 128, 512, 784 }, Wnum = 0, Onum = 0, Dnum = 0, dop;
-	float* del, * delw, * weight, * Bweight, * out, * Inp, * Oout;
+	int WeightSum = 0, NeuralSum = 0, n[layer] = { 11, 64, 256, 784 };
+	float* del, * delw, * weight, * out, * Inp, * Oout;
 	clock_t t1;
 	std::string filename;
 
@@ -23,8 +23,6 @@ int main() {
 	std::cout << "Weights: " << WeightSum << std::endl;
 	std::cout << std::endl;
 
-	float* weights = new float[NeuralSum];
-	float* InputDataArr = new float[n[0]];
 	float* outO = new float[n[layer - 1]];
 
 	for (int i = 0; i < n[layer - 1]; i++)
@@ -40,30 +38,23 @@ int main() {
 	DelwNull << < WeightSum, 1 >> > (delw, WeightSum);
 
 	cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\0\\1 (1).png");
+	/*cv::imshow("Out", image);
+	cv::waitKey(10000);*/
 	cv::Mat result(image.rows, image.cols, CV_8UC1);
-	Input(n, layer, outO, Oout, image);
-
+	Input(n[layer - 1], outO, Oout, image);
 	DataCheck(WeightSum, weight, delw);
-	InputDataArr[10] = 1;
 
 	t1 = clock();
 	for (int adm = 0; adm < 1000; adm++) {
 		std::cout << "Iter #" << adm + 1 << std::endl;
 		for (int l = 0; l < 1; l++) {
-			for (int num = 0; num < 5000; num++) {
-				for (int k = 0; k < 10; k++) {
-					cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(num + 1) + ").png");
-					/*cv::imshow("Out1", image);
-					cv::waitKey(1);*/
-					InputDataArr[k] = 1;
-					cudaMemcpy(Inp, InputDataArr, n[0] * sizeof(float), cudaMemcpyHostToDevice);
-					InputData << <n[0], 1 >> > (Inp, out, n[0]);
-					Input(n, layer, outO, Oout, image);
-	
+			for (int num = 0; num < 1; num++) {
+				for (int k = 0; k < 5000; k++) {
+					cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(0) + "\\1 (" + std::to_string(k + 1) + ").png");
+					Input(n[layer - 1], outO, Oout, image);
+					InputGen(n[0], Inp, out);
 					Iteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del);
-					//Out(NeuralSum, layer, n, weights, out, result);
-					InputDataArr[k] = 0.3;
-					//cv::waitKey(1000);
+					Out(NeuralSum, layer, n, out, result);
 				}
 			}
 		}
