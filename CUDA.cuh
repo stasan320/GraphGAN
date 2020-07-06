@@ -105,19 +105,21 @@ void Iteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, f
 	}
 }
 
-void Input(int* n, int layer, float* outO, float* Oout, cv::Mat image) {
+void Input(int n, float* outO, float* Oout, cv::Mat image) {
 	for (int i = 0; i < image.rows; i++) {
 		for (int j = 0; j < image.cols; j++) {
 			float per = 0;
 			per = image.at<cv::Vec3b>(i, j)[0];
 			per = per / 255;
 			outO[i * image.cols + j] = per;
+			//std::cout << outO[i * image.cols + j] << std::endl;
 		}
 	}
-	cudaMemcpy(Oout, outO, n[layer - 1] * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(Oout, outO, n * sizeof(float), cudaMemcpyHostToDevice);
 }
 
-void Out(int NeuralSum, int layer, int* n, float* weights, float* out, cv::Mat result) {
+void Out(int NeuralSum, int layer, int* n, float* out, cv::Mat result) {
+	float* weights = new float[NeuralSum];
 	int Onum = NeuralSum - n[layer - 1];
 	cudaMemcpy(weights, out, NeuralSum * sizeof(float), cudaMemcpyDeviceToHost);
 
@@ -126,18 +128,21 @@ void Out(int NeuralSum, int layer, int* n, float* weights, float* out, cv::Mat r
 		for (int j = 0; j < result.cols; j++) {
 			float per = 0;
 			per = weights[Onum + i * result.cols + j];
-			per = ceil(per * 255);
+			per = per * 255;
+			per = ceil(per);
+			//std::cout << per << std::endl;
 			result.at<uchar>(i, j) = per;
 		}
 	}
 	cv::imshow("Out", result);
-	cv::waitKey(1000);
+	cv::waitKey(1);
 }
 
 //инициализация весов
 void WeightGen(float* weight, float* delw, int WeightSum) {
 	float* data = new float[WeightSum];
-	float max = 1, min = -1;
+	float max = 3, min = -3;
+	srand(static_cast<unsigned int>(time(0)));
 
 	for (int i = 0; i < WeightSum; i++) {
 		data[i] = (float)(rand()) / RAND_MAX * (max - min) + min;
@@ -145,6 +150,19 @@ void WeightGen(float* weight, float* delw, int WeightSum) {
 	cudaMemcpy(weight, data, WeightSum * sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(delw, data, WeightSum * sizeof(float), cudaMemcpyHostToDevice);
 	delete[] data;
+}
+
+//инициализация шума
+void InputGen(int n, float* Inp, float* out) {
+	float* data = new float[n];
+	float max = 1, min = 0;
+	srand(static_cast<unsigned int>(time(0)));
+
+	for (int i = 0; i < n; i++) {
+		data[i] = (float)(rand()) / RAND_MAX * (max - min) + min;
+	}
+	cudaMemcpy(Inp, data, n * sizeof(float), cudaMemcpyHostToDevice);
+	InputData << <n, 1 >> > (Inp, out, n);
 }
 
 void DataCheck(int WeightSum, float* weight, float* delw) {
