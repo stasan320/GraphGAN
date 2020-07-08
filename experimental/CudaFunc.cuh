@@ -1,7 +1,7 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-//обнуление 
+//обнуление delw
 __global__ void DelwNull(float* delw, int sum, int p) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	if (index < sum)
@@ -116,6 +116,41 @@ void IterationGen(int* n, int layer, int NeuralSum, int WeightSum, float* weight
 		}
 	}
 }
+
+/*void IterationDis(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* del) {
+	int Wnum = 0, Onum = 0, Dnum = 0;
+
+	for (int p = 0; p < 3; p++) {
+		Wnum = WeightSum * p;
+		Onum = NeuralSum * p;
+
+		for (int i = 0; i < (layer - 1); i++) {
+			Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);										//int layer, int Wnum, int Onum, float* weight, float* out
+			Wnum = Wnum + n[i] * n[i + 1];
+			Onum = Onum + n[i];
+		}
+
+		Delta << <n[layer - 1], 1 >> > (Oout, out, del, Onum, n[layer - 1], p, n[layer - 1]);
+
+		for (int j = 0; j < layer - 1; j++) {
+			Onum = Onum - n[layer - 2 - j];
+			Wnum = Wnum - n[layer - 2 - j] * n[layer - 1 - j];
+			DeltaN << <n[layer - 2 - j], 1 >> > (Dnum, Wnum, Onum, del, weight, out, n[layer - 1 - j], n[layer - 2 - j]);					    //int Dnum, int Wnum, int Onum, float* del, float* weight, float* out
+			Dnum = Dnum + n[layer - 1 - j];
+		}
+
+		Wnum = WeightSum * (p + 1);
+		Dnum = 0;
+		Onum = NeuralSum * (p + 1) - n[layer - 1];
+
+		for (int j = 0; j < layer - 1; j++) {
+			Onum = Onum - n[layer - 2 - j];
+			Wnum = Wnum - n[layer - 1 - j] * n[layer - 2 - j];
+			Deltaw << < n[layer - 2 - j], 1 >> > (weight, del, out, delw, Dnum, Onum, Wnum, n[layer - 1 - j], n[layer - 2 - j]);				//float* weight, float* del, float* out, float* delw, int Dnum, int Onum, int Wnum, int layer, int n
+			Dnum = Dnum + n[layer - 1 - j];
+		}
+	}
+}*/
 
 void Backup(int WeightSum, float* weight, float* delw, int p) {
 	float* Bweight = new float[WeightSum * 3];
@@ -278,5 +313,71 @@ void ImageResult(int NeuralSum, float* out, int n, float* Dis) {
 	}
 	cudaMemcpy(Dis, data, 3 * sizeof(float), cudaMemcpyHostToDevice);
 	std::cout << std::endl;
+	delete[] weights;
+}
+
+void SumGen(int WeightSum, int NeuralSum, int Neural, int* n, float* weight, float* out, cv::Mat result, float* Inp, float* Disout, int layer) {
+	int Wnum = 0, Onum = 0, Dnum = 0;
+
+	for (int p = 0; p < 3; p++) {
+		Wnum = WeightSum * p;
+		Onum = NeuralSum * p;
+
+		for (int i = 0; i < (layer - 1); i++) {
+			Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);										//int layer, int Wnum, int Onum, float* weight, float* out
+			Wnum = Wnum + n[i] * n[i + 1];
+			Onum = Onum + n[i];
+		}
+	}
+
+	float* weights = new float[NeuralSum * 3];
+	float* data = new float[n[layer - 1]];
+	cudaMemcpy(weights, out, NeuralSum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
+
+	for (int p = 0; p < 3; p++) {
+		int Onum = NeuralSum * (p + 1) - n[layer - 1];
+		for (int i = 0; i < result.rows; i++) {
+			for (int j = 0; j < result.cols; j++) {
+				float per = 0;
+				data[p * result.rows * result.cols + i * result.cols + j] = weights[Onum + i * result.cols + j];
+			}
+		}
+	}
+	cudaMemcpy(Inp, data, n[layer - 1] * 3 * sizeof(float), cudaMemcpyHostToDevice);
+	for (int i = 0; i < 3; i++)
+		InputData << <n[layer - 1], 1 >> > (Inp, Disout, n[layer - 1], i, Neural);
+	/*cv::imshow("Out", result);
+	cv::waitKey(1);*/
+	delete[] weights;
+	delete[] data;
+}
+
+void SumDis(int WeightSum, int NeuralSum, int Neural, int* n, float* weight, float* out, float* Dis, cv::Mat image, float* Inp, int layer) {
+	int Wnum = 0, Onum = 0, Dnum = 0;
+
+	for (int p = 0; p < 3; p++) {
+		Wnum = WeightSum * p;
+		Onum = NeuralSum * p;
+
+		for (int i = 0; i < (layer - 1); i++) {
+			Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);										//int layer, int Wnum, int Onum, float* weight, float* out
+			Wnum = Wnum + n[i] * n[i + 1];
+			Onum = Onum + n[i];
+		}
+	}
+
+	float* weights = new float[NeuralSum * 3];
+	float* data = new float[n[layer - 1]];
+	cudaMemcpy(weights, out, NeuralSum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
+
+	for (int i = 0; i < 3; i++) {
+		for (int k = NeuralSum - n[layer - 1]; k < NeuralSum; k++) {
+			std::cout << weights[k + i * NeuralSum] << std::endl;
+			data[i] = weights[k + i * NeuralSum];
+		}
+	}
+	cudaMemcpy(Dis, data, 3 * sizeof(float), cudaMemcpyHostToDevice);
+
+	delete[] data;
 	delete[] weights;
 }
