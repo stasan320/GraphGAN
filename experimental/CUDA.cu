@@ -54,7 +54,7 @@ int main() {
 	cudaMalloc((void**)&Dis, nc[layer - 1] * 3 * sizeof(float));
 
 	DelwNull << < WeightSum, 1 >> > (delw, WeightSum, 0);
-	DelwNull << < DisWeightSum, 1 >> > (Disdelw, DisWeightSum);
+	DelwNull << < DisWeightSum, 1 >> > (Disdelw, DisWeightSum, 0);
 
 	cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\0\\1 (9).png");
 	/*cv::imshow("Out", image);
@@ -64,7 +64,7 @@ int main() {
 	DataCheck(WeightSum, weight, delw, 0);
 	DataCheck(DisWeightSum, Disweight, Disdelw, 1);
 
-	DelwNull << < nc[lauer - 1], 1 >> > (Dis, nc[lauer - 1], 1);
+	DelwNull << < nc[layer - 1], 1 >> > (Dis, nc[layer - 1], 1);
 
 	t1 = clock();
 	for (int adm = 0; adm < 1000; adm++) {
@@ -72,9 +72,11 @@ int main() {
 		for (int l = 0; l < 1; l++) {
 			for (int num = 0; num < 5000; num++) {
 				for (int k = 0; k < 1; k++) {
+					InputGen(n[0], NeuralSum, Inp, out);
+					SumGen(WeightSum, NeuralSum, DisNeuralSum, n, weight, out, result, Inp, Disout, layer);
+					SumDis(DisWeightSum, DisNeuralSum, NeuralSum, nc, Disweight, Disout, Dis, image, Inp, layer);
 					//cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(num + 1) + ").png");
 					//Input(n[layer - 1], outO, Oout, image);
-					InputGen(n[0], NeuralSum, Inp, out);
 					IterationGen(n, layer, NeuralSum, WeightSum, weight, out, delw, Dis, del);
 					Out(NeuralSum, layer, n, out, result);
 				}
@@ -84,19 +86,10 @@ int main() {
 
 		for (int l = 0; l < 1; l++) {
 			for (int num = 0; num < 5000; num++) {
-				int Wnum = 0, Onum = 0, Dnum = 0;
+				InputGen(n[0], NeuralSum, Inp, out);
+				SumGen(WeightSum, NeuralSum, DisNeuralSum, n, weight, out, result, Inp, Disout, layer);
 
-				for (int p = 0; p < 3; p++) {
-					Wnum = WeightSum * p;
-					Onum = NeuralSum * p;
-
-					for (int i = 0; i < (layer - 1); i++) {
-						Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);										//int layer, int Wnum, int Onum, float* weight, float* out
-						Wnum = Wnum + n[i] * n[i + 1];
-						Onum = Onum + n[i];
-					}
-				}
-				InputGen(nc[0], DisNeuralSum, DisInp, Disout);
+				//InputGen(nc[0], DisNeuralSum, DisInp, Disout);
 				for (int i = 0; i < 3; i++)
 					DisoutO[i] = 0.3;
 				cudaMemcpy(DisOout, DisoutO, nc[layer - 1] * 3 * sizeof(float), cudaMemcpyHostToDevice);
