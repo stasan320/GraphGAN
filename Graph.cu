@@ -23,7 +23,6 @@ int main() {
 	std::cout << "Weights: " << WeightSum * 3 << std::endl;
 	std::cout << std::endl;
 
-	//float* InputDataArr = new float[n[0]];
 	float* outO = new float[n[layer - 1] * 3];
 
 	for (int i = 0; i < n[layer - 1]; i++)
