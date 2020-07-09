@@ -30,10 +30,10 @@ __global__ void Sumfunc(int layer, int Wnum, int Onum, float* weight, float* out
 }
 
 //первая дельта
-__global__ void Delta(float* outO, float* out, float* del, int Onum, int size, int p, int n) {
+__global__ void Delta(float* outO, float* out, float* del, int Onum, int size, int p) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	//if (index < size)
-	del[index] = (outO[p * n + index] - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
+	del[index] = (outO[p * size + index] - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
 	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
 }
 
@@ -60,6 +60,36 @@ __global__ void Deltaw(float* weight, float* del, float* out, float* delw, int D
 	}
 }
 
+//инициализация весов
+void WeightGen(float* weight, float* delw, int WeightSum) {
+	float* data = new float[WeightSum * 3];
+	float max = 3, min = -3;
+	srand(static_cast<unsigned int>(time(0)));
+
+	for (int i = 0; i < WeightSum * 3; i++) {
+		data[i] = (float)(rand()) / RAND_MAX * (max - min) + min;
+	}
+	cudaMemcpy(weight, data, WeightSum * 3 * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(delw, data, WeightSum * 3 * sizeof(float), cudaMemcpyHostToDevice);
+	delete[] data;
+}
+
+//рандомайзер
+void Random(int n, int NeuralSum, float* Inp, float* out, float minim) {
+	float* data = new float[n * 3];
+	float max = 1, min = -1;
+	srand(static_cast<unsigned int>(time(0)));
+
+	for (int i = 0; i < n * 3; i++) {
+		data[i] = (float)(rand()) / RAND_MAX * (max - min) + min;
+		//std::cout << data[i] << std::endl;
+	}
+	cudaMemcpy(Inp, data, n * 3 * sizeof(float), cudaMemcpyHostToDevice);
+	for (int i = 0; i < 3; i++)
+		InputData << <n, 1 >> > (Inp, out, n, i, NeuralSum);
+	delete[] data;
+}
+
 /*-------------------работает-------------------*/
 
 __global__ void Clayer(float* weight, float* out, int Onum) {
@@ -79,21 +109,29 @@ __global__ void ConvDeltaW(float* weight, float* out, float* del, float* delw, i
 	}
 }
 
-void Iteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del) {
-	int Wnum = 0, Onum = 0, Dnum = 0;
+void GlobalSumFunc(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out) {
+	int Wnum = 0, Onum = 0;
 
 	for (int p = 0; p < 3; p++) {
 		Wnum = WeightSum * p;
 		Onum = NeuralSum * p;
 
-		/*Dnum = (NeuralSum - n[0]) * p;*/
 		for (int i = 0; i < (layer - 1); i++) {
 			Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);										//int layer, int Wnum, int Onum, float* weight, float* out
 			Wnum = Wnum + n[i] * n[i + 1];
 			Onum = Onum + n[i];
 		}
+	}
+}
 
-		Delta << <n[layer - 1], 1 >> > (Oout, out, del, Onum, n[layer - 1], p, n[layer - 1]);
+void Iteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del) {
+	int Wnum = 0, Onum = 0, Dnum = 0;
+
+	for (int p = 0; p < 3; p++) {
+		Wnum = WeightSum * (p + 1);
+		Onum = NeuralSum * (p + 1);
+
+		Delta << <n[layer - 1], 1 >> > (Oout, out, del, Onum, n[layer - 1], p);
 
 		for (int j = 0; j < layer - 1; j++) {
 			Onum = Onum - n[layer - 2 - j];
@@ -115,7 +153,7 @@ void Iteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, f
 	}
 }
 
-void Input(int n, float* outO, float* Oout, cv::Mat image) {
+void OutInputImage(int n, float* outO, float* Oout, cv::Mat image) {
 	for (int p = 0; p < 3; p++) {
 		for (int i = 0; i < image.rows; i++) {
 			for (int j = 0; j < image.cols; j++) {
@@ -129,7 +167,7 @@ void Input(int n, float* outO, float* Oout, cv::Mat image) {
 	cudaMemcpy(Oout, outO, n * 3 * sizeof(float), cudaMemcpyHostToDevice);
 }
 
-void Out(int NeuralSum, int layer, int* n, float* out, cv::Mat result) {
+void OutOutImage(int NeuralSum, int layer, int* n, float* out, cv::Mat result) {
 	float* weights = new float[NeuralSum * 3];
 	cudaMemcpy(weights, out, NeuralSum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
 
@@ -141,7 +179,7 @@ void Out(int NeuralSum, int layer, int* n, float* out, cv::Mat result) {
 				per = weights[Onum + i * result.cols + j];
 				per = ceil(per * 255);
 				//std::cout << per << std::endl;
-				result.at<cv::Vec3b>(i,j)[p] = per;
+				result.at<cv::Vec3b>(i, j)[p] = per;
 			}
 		}
 	}
@@ -150,46 +188,17 @@ void Out(int NeuralSum, int layer, int* n, float* out, cv::Mat result) {
 	delete[] weights;
 }
 
-//инициализация весов
-void WeightGen(float* weight, float* delw, int WeightSum) {
-	float* data = new float[WeightSum * 3];
-	float max = 3, min = -3;
-	srand(static_cast<unsigned int>(time(0)));
-
-	for (int i = 0; i < WeightSum * 3; i++) {
-		data[i] = (float)(rand()) / RAND_MAX * (max - min) + min;
-	}
-	cudaMemcpy(weight, data, WeightSum * 3 * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(delw, data, WeightSum * 3 * sizeof(float), cudaMemcpyHostToDevice);
-	delete[] data;
-}
-
-//инициализация входов
-void InputGen(int n, int NeuralSum, float* Inp, float* out) {
-	float* data = new float[n * 3];
-	float max = 1, min = -1;
-	srand(static_cast<unsigned int>(time(0)));
-
-	for (int i = 0; i < n; i++) {
-		data[i] = (float)(rand()) / RAND_MAX * (max - min) + min;
-	}
-	cudaMemcpy(Inp, data, n * 3 * sizeof(float), cudaMemcpyHostToDevice);
-	for (int i = 0; i < 3; i++)
-		InputData << <n, 1 >> > (Inp, out, n, i, NeuralSum);
-	delete[] data;
-}
-
-void DataCheck(int WeightSum, float* weight, float* delw) {
+void DataCheck(int WeightSum, float* weight, float* delw, int p) {
 	std::string filename;
 
-	std::ifstream Fconfig("E:\\Foton\\ngnl_data\\backup\\config.txt");
+	std::ifstream Fconfig("E:\\Foton\\ngnl_data\\backup\\config" + std::to_string(p) + ".txt");
 	Fconfig >> filename;
 	if (std::stoi(filename) == 1) {
 		Fconfig.close();
 		float* Bweight = new float[WeightSum * 3];
 		float* Bdelw = new float[WeightSum * 3];
-		std::ifstream fweight("E:\\Foton\\ngnl_data\\backup\\weight.dat");
-		std::ifstream fdelw("E:\\Foton\\ngnl_data\\backup\\delw.dat");
+		std::ifstream fweight("E:\\Foton\\ngnl_data\\backup\\weight" + std::to_string(p) + ".dat");
+		std::ifstream fdelw("E:\\Foton\\ngnl_data\\backup\\delw" + std::to_string(p) + ".dat");
 
 		for (int i = 0; i < WeightSum * 3; i++) {
 			fweight >> Bweight[i];
@@ -209,12 +218,14 @@ void DataCheck(int WeightSum, float* weight, float* delw) {
 
 void InputImage(int n, float* out, float* outO, float* Oout, float* Inp, cv::Mat image) {
 	int p = 0;
-	for (int i = 0; i < image.rows; i++) {
-		for (int j = 0; j < image.cols; j++) {
-			float per = 0;
-			per = image.at<cv::Vec3b>(i, j)[0];
-			per = per / 255;
-			outO[i * image.cols + j] = per;
+	for (int p = 0; p < 3; p++) {
+		for (int i = 0; i < image.rows; i++) {
+			for (int j = 0; j < image.cols; j++) {
+				float per = 0;
+				per = image.at<cv::Vec3b>(i, j)[0];
+				per = per / 255;
+				outO[i * image.cols + j] = per;
+			}
 		}
 	}
 
@@ -228,4 +239,27 @@ void ImageResult(int NeuralSum, float* out, int n) {
 
 	for (int i = (NeuralSum - n); i < NeuralSum; i++)
 		std::cout << weights[i] << std::endl;
+}
+
+void Backup(int WeightSum, float* weight, float* delw, int p) {
+	float* Bweight = new float[WeightSum * 3];
+	float* Bdelw = new float[WeightSum * 3];
+	cudaMemcpy(Bweight, weight, WeightSum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(Bdelw, delw, WeightSum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
+	std::ofstream fweight("E:\\Foton\\ngnl_data\\backup\\weight" + std::to_string(p) + ".dat");
+	std::ofstream fdelw("E:\\Foton\\ngnl_data\\backup\\delw" + std::to_string(p) + ".dat");
+
+	for (int i = 0; i < WeightSum * 3; i++) {
+		fweight << Bweight[i] << " ";
+		fdelw << Bdelw[i] << " ";
+	}
+	std::cout << "Backup" << std::endl;
+	delete[] Bweight;
+	delete[] Bdelw;
+	fweight.close();
+	fdelw.close();
+
+	std::ofstream config("E:\\Foton\\ngnl_data\\backup\\config" + std::to_string(p) + ".txt");
+	config << 1;
+	config.close();
 }
