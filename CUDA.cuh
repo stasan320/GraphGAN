@@ -109,6 +109,61 @@ __global__ void ConvDeltaW(float* weight, float* out, float* del, float* delw, i
 	}
 }
 
+/*-------------------работает-------------------*/
+
+void DataCheck(int WeightSum, float* weight, float* delw, int p) {
+	std::string filename;
+
+	std::ifstream Fconfig("E:\\Foton\\ngnl_data\\backup\\config" + std::to_string(p) + ".txt");
+	Fconfig >> filename;
+	if (std::stoi(filename) == 1) {
+		Fconfig.close();
+		float* Bweight = new float[WeightSum * 3];
+		float* Bdelw = new float[WeightSum * 3];
+		std::ifstream fweight("E:\\Foton\\ngnl_data\\backup\\weight" + std::to_string(p) + ".dat");
+		std::ifstream fdelw("E:\\Foton\\ngnl_data\\backup\\delw" + std::to_string(p) + ".dat");
+
+		for (int i = 0; i < WeightSum * 3; i++) {
+			fweight >> Bweight[i];
+			fdelw >> Bdelw[i];
+		}
+		std::cout << "Model upload" << std::endl;
+
+		cudaMemcpy(weight, Bweight, WeightSum * 3 * sizeof(float), cudaMemcpyHostToDevice);
+		cudaMemcpy(delw, Bdelw, WeightSum * 3 * sizeof(float), cudaMemcpyHostToDevice);
+		delete[] Bweight;
+		delete[] Bdelw;
+	}
+	else if (std::stoi(filename) == 0) {
+		WeightGen(weight, delw, WeightSum);
+	}
+}
+
+void Backup(int WeightSum, float* weight, float* delw, int p) {
+	float* Bweight = new float[WeightSum * 3];
+	float* Bdelw = new float[WeightSum * 3];
+	cudaMemcpy(Bweight, weight, WeightSum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(Bdelw, delw, WeightSum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
+	std::ofstream fweight("E:\\Foton\\ngnl_data\\backup\\weight" + std::to_string(p) + ".dat");
+	std::ofstream fdelw("E:\\Foton\\ngnl_data\\backup\\delw" + std::to_string(p) + ".dat");
+
+	for (int i = 0; i < WeightSum * 3; i++) {
+		fweight << Bweight[i] << " ";
+		fdelw << Bdelw[i] << " ";
+	}
+	std::cout << "Backup" << std::endl;
+	delete[] Bweight;
+	delete[] Bdelw;
+	fweight.close();
+	fdelw.close();
+
+	std::ofstream config("E:\\Foton\\ngnl_data\\backup\\config" + std::to_string(p) + ".txt");
+	config << 1;
+	config.close();
+}
+
+/*---------------neural void func---------------*/
+
 void GlobalSumFunc(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out) {
 	int Wnum = 0, Onum = 0;
 
@@ -153,7 +208,7 @@ void Iteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, f
 	}
 }
 
-void OutInputImage(int n, float* outO, float* Oout, cv::Mat image) {
+void InputOutImage(int n, float* outO, float* Oout, cv::Mat image) {
 	for (int p = 0; p < 3; p++) {
 		for (int i = 0; i < image.rows; i++) {
 			for (int j = 0; j < image.cols; j++) {
@@ -167,57 +222,28 @@ void OutInputImage(int n, float* outO, float* Oout, cv::Mat image) {
 	cudaMemcpy(Oout, outO, n * 3 * sizeof(float), cudaMemcpyHostToDevice);
 }
 
-void OutOutImage(int NeuralSum, int layer, int* n, float* out, cv::Mat result) {
+void OutOutImage(int NeuralSum, int layer, int* n, float* out, cv::Mat image) {
 	float* weights = new float[NeuralSum * 3];
 	cudaMemcpy(weights, out, NeuralSum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
 
 	for (int p = 0; p < 3; p++) {
 		int Onum = NeuralSum * (p + 1) - n[layer - 1];
-		for (int i = 0; i < result.rows; i++) {
-			for (int j = 0; j < result.cols; j++) {
+		for (int i = 0; i < image.rows; i++) {
+			for (int j = 0; j < image.cols; j++) {
 				float per = 0;
-				per = weights[Onum + i * result.cols + j];
+				per = weights[Onum + i * image.cols + j];
 				per = ceil(per * 255);
 				//std::cout << per << std::endl;
-				result.at<cv::Vec3b>(i, j)[p] = per;
+				image.at<cv::Vec3b>(i, j)[p] = per;
 			}
 		}
 	}
-	cv::imshow("Out", result);
+	cv::imshow("Out", image);
 	cv::waitKey(1);
 	delete[] weights;
 }
 
-void DataCheck(int WeightSum, float* weight, float* delw, int p) {
-	std::string filename;
-
-	std::ifstream Fconfig("E:\\Foton\\ngnl_data\\backup\\config" + std::to_string(p) + ".txt");
-	Fconfig >> filename;
-	if (std::stoi(filename) == 1) {
-		Fconfig.close();
-		float* Bweight = new float[WeightSum * 3];
-		float* Bdelw = new float[WeightSum * 3];
-		std::ifstream fweight("E:\\Foton\\ngnl_data\\backup\\weight" + std::to_string(p) + ".dat");
-		std::ifstream fdelw("E:\\Foton\\ngnl_data\\backup\\delw" + std::to_string(p) + ".dat");
-
-		for (int i = 0; i < WeightSum * 3; i++) {
-			fweight >> Bweight[i];
-			fdelw >> Bdelw[i];
-		}
-		std::cout << "Model upload" << std::endl;
-
-		cudaMemcpy(weight, Bweight, WeightSum * 3 * sizeof(float), cudaMemcpyHostToDevice);
-		cudaMemcpy(delw, Bdelw, WeightSum * 3 * sizeof(float), cudaMemcpyHostToDevice);
-		delete[] Bweight;
-		delete[] Bdelw;
-	}
-	else if (std::stoi(filename) == 0) {
-		WeightGen(weight, delw, WeightSum);
-	}
-}
-
-void InputImage(int n, float* out, float* outO, float* Oout, float* Inp, cv::Mat image) {
-	int p = 0;
+void InputInputImage(int n, float* out, float* outO, float* Oout, float* Inp, cv::Mat image) {
 	for (int p = 0; p < 3; p++) {
 		for (int i = 0; i < image.rows; i++) {
 			for (int j = 0; j < image.cols; j++) {
@@ -228,6 +254,7 @@ void InputImage(int n, float* out, float* outO, float* Oout, float* Inp, cv::Mat
 			}
 		}
 	}
+	int p = 0;
 
 	cudaMemcpy(Oout, outO, n * sizeof(float), cudaMemcpyHostToDevice);
 	InputData << <n, 1 >> > (Inp, out, n, p, p);
@@ -239,27 +266,4 @@ void ImageResult(int NeuralSum, float* out, int n) {
 
 	for (int i = (NeuralSum - n); i < NeuralSum; i++)
 		std::cout << weights[i] << std::endl;
-}
-
-void Backup(int WeightSum, float* weight, float* delw, int p) {
-	float* Bweight = new float[WeightSum * 3];
-	float* Bdelw = new float[WeightSum * 3];
-	cudaMemcpy(Bweight, weight, WeightSum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
-	cudaMemcpy(Bdelw, delw, WeightSum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
-	std::ofstream fweight("E:\\Foton\\ngnl_data\\backup\\weight" + std::to_string(p) + ".dat");
-	std::ofstream fdelw("E:\\Foton\\ngnl_data\\backup\\delw" + std::to_string(p) + ".dat");
-
-	for (int i = 0; i < WeightSum * 3; i++) {
-		fweight << Bweight[i] << " ";
-		fdelw << Bdelw[i] << " ";
-	}
-	std::cout << "Backup" << std::endl;
-	delete[] Bweight;
-	delete[] Bdelw;
-	fweight.close();
-	fdelw.close();
-
-	std::ofstream config("E:\\Foton\\ngnl_data\\backup\\config" + std::to_string(p) + ".txt");
-	config << 1;
-	config.close();
 }
