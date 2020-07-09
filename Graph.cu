@@ -9,10 +9,13 @@
 const int layer = 3;
 
 int main() {
-	int WeightSum = 0, NeuralSum = 0, n[layer] = { 1, 1, 800*615 };
+	int WeightSum = 0, NeuralSum = 0, n[layer] = { 16, 64, 784 };
 	float* del, * delw, * weight, * out, * Inp, * Oout;
 	clock_t t1;
 	std::string filename;
+
+	/*---------перевести в const---------*/
+	/*определение основных переменных Gen*/
 
 	for (int i = 0; i < layer; i++)
 		NeuralSum = n[i] + NeuralSum;
@@ -23,9 +26,11 @@ int main() {
 	std::cout << "Weights: " << WeightSum * 3 << std::endl;
 	std::cout << std::endl;
 
+	/*---------перевести в const---------*/
+
 	float* outO = new float[n[layer - 1] * 3];
 
-	for (int i = 0; i < n[layer - 1]; i++)
+	for (int i = 0; i < n[layer - 1] * 3; i++)
 		outO[i] = 0;
 
 	cudaMalloc((void**)&out, NeuralSum * 3 * sizeof(float));
@@ -37,44 +42,26 @@ int main() {
 
 	DelwNull << < WeightSum, 1 >> > (delw, WeightSum);
 
-	cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\art\\1 (9).jpg");
+	cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\0\\1 (9).png");
 	cv::Mat result(image.rows, image.cols, CV_8UC3);
-	Input(n[layer - 1], outO, Oout, image);
-	DataCheck(WeightSum, weight, delw);
+	InputOutImage(n[layer - 1], outO, Oout, image);
+	DataCheck(WeightSum, weight, delw, 0);
 
 	t1 = clock();
 	for (int adm = 0; adm < 1000; adm++) {
 		std::cout << "Iter #" << adm + 1 << std::endl;
 		for (int l = 0; l < 1; l++) {
-			for (int num = 0; num < 50; num++) {
+			for (int num = 0; num < 5000; num++) {
 				for (int k = 0; k < 1; k++) {
 					/*cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(num + 1) + ").png");
 					Input(n[layer - 1], outO, Oout, image);*/
-					InputGen(n[0], NeuralSum, Inp, out);
+					Random(n[0], NeuralSum, Inp, out, 0);
+					GlobalSumFunc(n, layer, NeuralSum, WeightSum, weight, out);
 					Iteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del);
-					//Out(NeuralSum, layer, n, out, result);
+					OutOutImage(NeuralSum, layer, n, out, result);
 				}
 			}
 		}
-		float* Bweight = new float[WeightSum * 3];
-		float* Bdelw = new float[WeightSum * 3];
-		cudaMemcpy(Bweight, weight, WeightSum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
-		cudaMemcpy(Bdelw, delw, WeightSum * 3* sizeof(float), cudaMemcpyDeviceToHost);
-		std::ofstream fweight("E:\\Foton\\ngnl_data\\backup\\weight.dat");
-		std::ofstream fdelw("E:\\Foton\\ngnl_data\\backup\\delw.dat");
-
-		for (int i = 0; i < WeightSum * 3; i++) {
-			fweight << Bweight[i] << " ";
-			fdelw << Bdelw[i] << " ";
-		}
-		std::cout << "Backup" << std::endl;
-		delete[] Bweight;
-		delete[] Bdelw;
-		fweight.close();
-		fdelw.close();
-
-		std::ofstream config("E:\\Foton\\ngnl_data\\backup\\config.txt");
-		config << 1;
-		config.close();
+		Backup(WeightSum, weight, delw, 0);
 	}
 }
