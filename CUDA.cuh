@@ -243,7 +243,7 @@ void OutOutImage(int NeuralSum, int layer, int* n, float* out, cv::Mat image) {
 	delete[] weights;
 }
 
-void InputInputImage(int n, float* out, float* outO, float* Oout, float* Inp, cv::Mat image) {
+void InputInputImage(int n, float* out, float* outO, float* Inp, cv::Mat image, int DisNeuralSum) {
 	for (int p = 0; p < 3; p++) {
 		for (int i = 0; i < image.rows; i++) {
 			for (int j = 0; j < image.cols; j++) {
@@ -254,10 +254,10 @@ void InputInputImage(int n, float* out, float* outO, float* Oout, float* Inp, cv
 			}
 		}
 	}
-	int p = 0;
 
-	cudaMemcpy(Oout, outO, n * sizeof(float), cudaMemcpyHostToDevice);
-	InputData << <n, 1 >> > (Inp, out, n, p, p);
+	cudaMemcpy(Inp, outO, n * 3 * sizeof(float), cudaMemcpyHostToDevice);
+	for (int i = 0; i < 3; i++)
+		InputData << <n, 1 >> > (Inp, out, n, i, DisNeuralSum);
 }
 
 void ImageResult(int NeuralSum, float* out, int n) {
@@ -266,4 +266,14 @@ void ImageResult(int NeuralSum, float* out, int n) {
 
 	for (int i = (NeuralSum - n); i < NeuralSum; i++)
 		std::cout << weights[i] << std::endl;
+}
+
+void OutDiffer(int i, int nc, int DisNeuralSum, float* DisInp, float* Disout, float* DisoutO, cv::Mat image, int p) {
+	if (i == 0) {
+		Random(nc, DisNeuralSum, DisInp, Disout, p);
+		i = 1;
+	}
+	else {
+		InputInputImage(nc, Disout, DisoutO, DisInp, image, DisNeuralSum);
+	}
 }
