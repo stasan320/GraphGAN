@@ -9,7 +9,7 @@
 const int layer = 4, RGB = 1;
 
 int main() {
-	int WeightSum = 0, NeuralSum = 0, n[layer] = { 4, 16, 4, 784 },
+	int WeightSum = 0, NeuralSum = 0, n[layer] = { 4, 16, 4, 784 }, int dop = 0,
 		DisWeightSum = 0, DisNeuralSum = 0, nc[layer] = { 784, 64, 16, 1 };
 	float * del, * delw, * weight, * out, * Inp, * Oout, * DOout,
 		  * Disdel, * Disdelw, * Disweight, * Disout, * DisInp, * DisOout;
@@ -36,9 +36,16 @@ int main() {
 	std::cout << "Weights: " << DisWeightSum * RGB << std::endl;
 	std::cout << std::endl;
 
+	/*---------перевести в const---------*/
+
 	float* outO = new float[n[layer - 1] * RGB];                //оптимальный вариант генератора в RAM
 	float* DisoutO = new float[nc[layer - 1] * RGB];            //оптимальный вариант дискриминатора в RAM
 	float* DisResult = new float[nc[layer - 1] * RGB];          //решение дискриминатора
+
+	for (int i = 0; i < n[layer - 1] * RGB; i++)
+		outO[i] = 0;
+	for (int i = 0; i < nc[layer - 1] * RGB; i++)
+		DisoutO[i] = 0;
 
 	cudaMalloc((void**)&out, NeuralSum * RGB * sizeof(float));
 	cudaMalloc((void**)&del, (NeuralSum - n[0]) * sizeof(float));
@@ -61,6 +68,7 @@ int main() {
 	cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\0\\1 (9).png");
 	cv::Mat result(image.rows, image.cols, CV_8UC1);
 
+	//InputOutImage(n[layer - 1], outO, Oout, image, RGB);
 	DataCheck(WeightSum, weight, delw, 0, RGB);
 	DataCheck(DisWeightSum, Disweight, Disdelw, 1, RGB);
 
@@ -69,7 +77,7 @@ int main() {
 		std::cout << "Iter #" << adm + 1 << std::endl;
 		for (int l = 0; l < 1; l++) {
 			for (int num = 0; num < 1; num++) {
-				for (int k = 0; k < 5000; k++) {
+				for (int k = 0; k < 10; k++) {
 					//---------Input image data---//
 					//---------SumFunc------------//
 					//---------Out data-----------//
@@ -101,7 +109,7 @@ int main() {
 					OptDis(DisoutO, nc[layer - 1], RGB, DisOout, 0);
 					DisIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, RGB);
 				}
-
+				std::cout << "data";
 				for (int k = 0; k < 10000; k++) {
 					Random(n[0], NeuralSum, Inp, out, RGB);
 					GlobalSumFunc(n, layer, NeuralSum, WeightSum, weight, out, RGB);
