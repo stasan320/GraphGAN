@@ -49,15 +49,16 @@ __global__ void Sumfunc(int layer, int Wnum, int Onum, float* weight, float* out
 //первая дельта
 __global__ void DisDelta(float* outO, float* out, float* del, int Onum, int size, int p) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
+
 	//if (index < size)
-	//del[index] = (outO[p * size + index] - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
-	del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
+	del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
+	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
 }
 
 __global__ void GenDelta(float* outO, float* out, float* del, int Onum, int size, int p) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	//if (index < size)
-	del[index] = (out[Onum + index] * /*log2f(2 / outO[p])*/ outO[p] - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
+	del[index] = (out[Onum + index] * log10f(2 / outO[p]) - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
 	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
 }
 
@@ -239,7 +240,7 @@ void GenIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight
 		Wnum = WeightSum * (p + 1);
 		Onum = NeuralSum * (p + 1) - n[layer - 1];
 
-		DisDelta << <n[layer - 1], 1 >> > (Oout, out, del, Onum, n[layer - 1], p);
+		GenDelta << <n[layer - 1], 1 >> > (Oout, out, del, Onum, n[layer - 1], p);
 
 		for (int j = 0; j < layer - 1; j++) {
 			Onum = Onum - n[layer - 2 - j];
@@ -409,7 +410,7 @@ void OptDis(float* DisoutO, int nc, int RGB, float* DisOout, int p) {
 	cudaMemcpy(DisOout, DisoutO, nc * RGB * sizeof(float), cudaMemcpyHostToDevice);
 }
 
-void GenToDis(float* Inp, int n, int NeuralSum, int DisNeuralSum, float* Disout, float* out, int RGB) {
+void Convert(float* Inp, int n, int NeuralSum, int DisNeuralSum, float* out, int RGB) {
 	float* data = new float[n * RGB];
 	float* weights = new float[NeuralSum * RGB];
 
@@ -421,8 +422,8 @@ void GenToDis(float* Inp, int n, int NeuralSum, int DisNeuralSum, float* Disout,
 	}
 
 	cudaMemcpy(Inp, data, n * RGB * sizeof(float), cudaMemcpyHostToDevice);
-	for (int i = 0; i < RGB; i++)
-		InputData << <n, 1 >> > (Inp, Disout, n, i, DisNeuralSum);
+	/*for (int i = 0; i < RGB; i++)
+		InputData << <n, 1 >> > (Inp, Disout, n, i, DisNeuralSum);*/
 	delete[] weights;
 	delete[] data;
 }
