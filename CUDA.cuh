@@ -58,7 +58,8 @@ __global__ void DisDelta(float* outO, float* out, float* del, int Onum, int size
 __global__ void GenDelta(float* outO, float* out, float* del, int Onum, int size, int p) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	//if (index < size)
-	del[index] = (out[Onum + index] * log10f(2 / outO[p]) - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
+	//del[index] = (log10f(outO[p]) - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
+	del[index] = log2f(1 / outO[p]) * (1 - out[Onum + index]) * out[Onum + index];
 	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
 }
 
