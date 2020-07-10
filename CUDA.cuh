@@ -87,7 +87,7 @@ __global__ void Deltaw(float* weight, float* del, float* out, float* delw, int D
 //инициализация весов
 void WeightGen(float* weight, float* delw, int WeightSum, int RGB) {
 	float* data = new float[WeightSum * RGB];
-	float max = 3, min = -3;
+	float max = 1, min = -1;
 	srand(static_cast<unsigned int>(time(0)));
 
 	for (int i = 0; i < WeightSum * RGB; i++) {
@@ -278,8 +278,8 @@ void InputOutImage(int n, float* outO, float* Oout, cv::Mat image, int RGB) {
 }
 
 void OutOutImage(int NeuralSum, int layer, int* n, float* out, cv::Mat image, int RGB) {
-	float* weights = new float[NeuralSum * 3];
-	cudaMemcpy(weights, out, NeuralSum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
+	float* weights = new float[NeuralSum * RGB];
+	cudaMemcpy(weights, out, NeuralSum * RGB * sizeof(float), cudaMemcpyDeviceToHost);
 
 	for (int p = 0; p < RGB; p++) {
 		int Onum = NeuralSum * (p + 1) - n[layer - 1];
@@ -322,8 +322,8 @@ void ImageResult(int NeuralSum, float* out, int n, int RGB) {
 	float* weights = new float[NeuralSum * RGB];
 	cudaMemcpy(weights, out, NeuralSum * RGB * sizeof(float), cudaMemcpyDeviceToHost);
 
-	//for (int i = 0; i < RGB; i++)
-		std::cout << weights[(0 + 1) * NeuralSum - 1] << std::endl;
+	for (int i = 0; i < RGB; i++)
+		std::cout << weights[(i + 1) * NeuralSum - n] << std::endl;
 	delete[] weights;
 }
 
@@ -407,4 +407,22 @@ void OptDis(float* DisoutO, int nc, int RGB, float* DisOout, int p) {
 	for (int i = 0; i < nc * RGB; i++)
 		DisoutO[i] = p;
 	cudaMemcpy(DisOout, DisoutO, nc * RGB * sizeof(float), cudaMemcpyHostToDevice);
+}
+
+void GenToDis(float* Inp, int n, int NeuralSum, int DisNeuralSum, float* Disout, float* out, int RGB) {
+	float* data = new float[n * RGB];
+	float* weights = new float[NeuralSum * RGB];
+
+	cudaMemcpy(weights, out, NeuralSum * RGB * sizeof(float), cudaMemcpyDeviceToHost);
+	for (int j = 0; j < RGB; j++) {
+		for (int i = 0; i < n; i++) {
+			data[i] = weights[NeuralSum * (j + 1) - n];
+		}
+	}
+
+	cudaMemcpy(Inp, data, n * RGB * sizeof(float), cudaMemcpyHostToDevice);
+	for (int i = 0; i < RGB; i++)
+		InputData << <n, 1 >> > (Inp, Disout, n, i, DisNeuralSum);
+	delete[] weights;
+	delete[] data;
 }
