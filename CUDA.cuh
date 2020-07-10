@@ -203,15 +203,12 @@ void GlobalSumFunc(int* n, int layer, int NeuralSum, int WeightSum, float* weigh
 	}
 }
 
-void DisIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del, float* Inp, int RGB) {
+void DisIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del, int RGB) {
 	int Wnum = 0, Onum = 0, Dnum = 0;
-	//cudaMemcpy(Oout, outO, n[layer - 1] * RGB * sizeof(float), cudaMemcpyHostToDevice);
-	/*for (int i = 0; i < 3; i++)
-		InputData << <n[0], 1 >> > (Inp, out, n[0], i, NeuralSum);*/
 
 	for (int p = 0; p < RGB; p++) {
 		Wnum = WeightSum * (p + 1);
-		Onum = NeuralSum * (p + 1);
+		Onum = NeuralSum * (p + 1) - n[layer - 1];
 
 		DisDelta << <n[layer - 1], 1 >> > (Oout, out, del, Onum, n[layer - 1], p);
 
@@ -237,7 +234,6 @@ void DisIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight
 
 void GenIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del, int RGB) {
 	int Wnum = 0, Onum = 0, Dnum = 0;
-	//cudaMemcpy(Oout, outO, 3 * sizeof(float), cudaMemcpyHostToDevice);
 
 	for (int p = 0; p < RGB; p++) {
 		Wnum = WeightSum * (p + 1);
@@ -405,4 +401,10 @@ void Out(int NeuralSum, int layer, int* n, float* weight, float* out, cv::Mat re
 	cv::imshow("Out", result);
 	cv::waitKey(1);
 	delete[] weights;
+}
+
+void OptDis(float* DisoutO, int nc, int RGB, float* DisOout, int p) {
+	for (int i = 0; i < nc * RGB; i++)
+		DisoutO[i] = p;
+	cudaMemcpy(DisOout, DisoutO, nc * RGB * sizeof(float), cudaMemcpyHostToDevice);
 }
