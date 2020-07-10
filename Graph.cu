@@ -9,7 +9,7 @@
 const int layer = 4, RGB = 1;
 
 int main() {
-	int WeightSum = 0, NeuralSum = 0, n[layer] = { 1, 2, 4, 784 }, int dop = 0,
+	int WeightSum = 0, NeuralSum = 0, n[layer] = { 4, 16, 4, 784 }, int dop = 0,
 		DisWeightSum = 0, DisNeuralSum = 0, nc[layer] = { 784, 64, 16, 1 };
 	float * del, * delw, * weight, * out, * Inp, * Oout,
 		  * Disdel, * Disdelw, * Disweight, * Disout, * DisInp, * DisOout;
@@ -76,27 +76,40 @@ int main() {
 		std::cout << "Iter #" << adm + 1 << std::endl;
 		for (int l = 0; l < 1; l++) {
 			for (int num = 0; num < 1; num++) {
-				for (int k = 0; k < 5000; k++) {
-					cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(1) + "\\1 (" + std::to_string(k + 1) + ").png");
-					OptDis(DisoutO, nc[layer - 1], RGB, DisOout, 1);
+				for (int k = 0; k < 1000; k++) {
+					//---------Input image data---//
+					//---------SumFunc------------//
+					//---------Out data-----------//
+					//---------Opt out data-------//
+					//---------Iter---------------//
 
+					//---------Input result data--//
+					//---------SumFunc------------//
+					//---------Out data-----------//
+					//---------Opt out data-------//
+					//---------Iter---------------//
+
+					cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(1) + "\\1 (" + std::to_string(k + 1) + ").png");
 					InputInputImage(nc[0], Disout, DisoutO, DisInp, image, DisNeuralSum, RGB);
 					GlobalSumFunc(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, RGB);
 					ImageResult(DisNeuralSum, Disout, nc[layer - 1], RGB);
+					OptDis(DisoutO, nc[layer - 1], RGB, DisOout, 1);
 					GenIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, RGB);
 
-					Random(nc[0], DisNeuralSum, DisInp, Disout, RGB);
-					OptDis(DisoutO, nc[layer - 1], RGB, DisOout, 0);
+					//Random(nc[0], DisNeuralSum, DisInp, Disout, RGB);
+					Random(n[0], NeuralSum, Inp, out, RGB);
+					GlobalSumFunc(n, layer, NeuralSum, WeightSum, weight, out, RGB);
+					GenToDis(DisInp, nc[0], NeuralSum, DisNeuralSum, Disout, out, RGB);
+
 					GlobalSumFunc(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, RGB);
-					DisIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, RGB);
 					ImageResult(DisNeuralSum, Disout, nc[layer - 1], RGB);
-					//std::cout << "12";
-					//ImageResult(DisNeuralSum, Disout, nc[layer - 1], RGB);
+					OptDis(DisoutO, nc[layer - 1], RGB, DisOout, 0);
+					DisIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, RGB);
 				}
 				dop = 1;
 				//std::cout << "12";
 
-				for (int k = 0; k < 1; k++) {
+				for (int k = 0; k < 10000; k++) {
 					cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(0) + "\\1 (" + std::to_string(k + 1) + ").png");
 					/*Input(n[layer - 1], outO, Oout, image);*/
 					// Random(n[0], NeuralSum, Inp, out);
@@ -108,9 +121,9 @@ int main() {
 					Random(n[0], NeuralSum, Inp, out, RGB);
 					//GlobalSumFunc(n, layer, NeuralSum, WeightSum, weight, out, RGB);
 					//InputData << <n[0], 1 >> > (Inp, out, n[0], 0, 0);
-					InputOutImage(n[layer - 1], outO, Oout, image, RGB);
+					//InputOutImage(n[layer - 1], outO, Oout, image, RGB);
 					GlobalSumFunc(n, layer, NeuralSum, WeightSum, weight, out, RGB);
-					GenIteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del, RGB);
+					//GenIteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del, RGB);
 					Out(NeuralSum, layer, n, weight, out, result);
 					//OutOutImage(NeuralSum, layer, n, out, result, RGB);
 					//std::cout << WeightSum << std::endl;
