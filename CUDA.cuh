@@ -79,7 +79,7 @@ __global__ void Deltaw(float* weight, float* del, float* out, float* delw, int D
 
 	for (int i = 0; i < layer; i++) {
 		grad = del[Dnum + i] * out[Onum + index];
-		delw[Wnum + index + n * i] = 0.5 * grad + 0.7 * delw[Wnum + index + n * i];
+		delw[Wnum + index + n * i] = 0.5 * grad + 0.3 * delw[Wnum + index + n * i];
 		weight[Wnum + index + n * i] = weight[Wnum + index + n * i] + delw[Wnum + index + n * i];
 	}
 }
@@ -205,7 +205,7 @@ void GlobalSumFunc(int* n, int layer, int NeuralSum, int WeightSum, float* weigh
 
 void DisIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del, float* Inp, int RGB) {
 	int Wnum = 0, Onum = 0, Dnum = 0;
-	cudaMemcpy(Oout, outO, n[layer - 1] * RGB * sizeof(float), cudaMemcpyHostToDevice);
+	//cudaMemcpy(Oout, outO, n[layer - 1] * RGB * sizeof(float), cudaMemcpyHostToDevice);
 	/*for (int i = 0; i < 3; i++)
 		InputData << <n[0], 1 >> > (Inp, out, n[0], i, NeuralSum);*/
 
@@ -303,28 +303,31 @@ void OutOutImage(int NeuralSum, int layer, int* n, float* out, cv::Mat image, in
 }
 
 void InputInputImage(int n, float* out, float* outO, float* Inp, cv::Mat image, int DisNeuralSum, int RGB) {
+	float* weights = new float[n * RGB];
 	for (int p = 0; p < RGB; p++) {
 		for (int i = 0; i < image.rows; i++) {
 			for (int j = 0; j < image.cols; j++) {
 				float per = 0;
-				per = image.at<cv::Vec3b>(i, j)[0];
+				per = image.at<cv::Vec3b>(i, j)[p];
 				per = per / 255;
-				outO[i * image.cols + j] = per;
+				weights[i * image.cols + j] = per;
+				//std::cout << outO[i * image.cols + j] << std::endl;
 			}
 		}
 	}
 
-	cudaMemcpy(Inp, outO, n * RGB * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(Inp, weights, n * RGB * sizeof(float), cudaMemcpyHostToDevice);
 	for (int i = 0; i < RGB; i++)
-		InputData << <n, 1 >> > (Inp, out, n, i, DisNeuralSum);
+		InputData << <n, 1 >> > (Inp, out, n, 0, 0);
+	delete[] weights;
 }
 
 void ImageResult(int NeuralSum, float* out, int n, int RGB) {
 	float* weights = new float[NeuralSum * RGB];
 	cudaMemcpy(weights, out, NeuralSum * RGB * sizeof(float), cudaMemcpyDeviceToHost);
 
-	for (int i = 0; i < RGB; i++)
-		std::cout << weights[(i + 1) * NeuralSum - n] << std::endl;
+	//for (int i = 0; i < RGB; i++)
+		std::cout << weights[(0 + 1) * NeuralSum - 1] << std::endl;
 	delete[] weights;
 }
 
