@@ -11,7 +11,7 @@ const int layer = 4, RGB = 1;
 int main() {
 	int WeightSum = 0, NeuralSum = 0, n[layer] = { 4, 16, 4, 784 }, int dop = 0,
 		DisWeightSum = 0, DisNeuralSum = 0, nc[layer] = { 784, 64, 16, 1 };
-	float * del, * delw, * weight, * out, * Inp, * Oout,
+	float * del, * delw, * weight, * out, * Inp, * Oout, * DOout,
 		  * Disdel, * Disdelw, * Disweight, * Disout, * DisInp, * DisOout;
 	clock_t t1;
 	std::string filename;
@@ -53,6 +53,7 @@ int main() {
 	cudaMalloc((void**)&delw, WeightSum * RGB * sizeof(float));
 	cudaMalloc((void**)&Inp, n[0] * RGB * sizeof(float));                              //входные данные генератора в GPU RAM
 	cudaMalloc((void**)&Oout, n[layer - 1] * RGB * sizeof(float));                     //оптимальный вариант генератора в GPU RAM
+	cudaMalloc((void**)&DOout, RGB * sizeof(float));                                   //оптимальный вариант генератора в GPU RAM
 
 	cudaMalloc((void**)&Disout, DisNeuralSum * RGB * sizeof(float));
 	cudaMalloc((void**)&Disdel, (DisNeuralSum - nc[0]) * sizeof(float));
@@ -76,7 +77,7 @@ int main() {
 		std::cout << "Iter #" << adm + 1 << std::endl;
 		for (int l = 0; l < 1; l++) {
 			for (int num = 0; num < 1; num++) {
-				for (int k = 0; k < 1000; k++) {
+				for (int k = 0; k < 5000; k++) {
 					//---------Input image data---//
 					//---------SumFunc------------//
 					//---------Out data-----------//
@@ -92,17 +93,19 @@ int main() {
 					cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(1) + "\\1 (" + std::to_string(k + 1) + ").png");
 					InputInputImage(nc[0], Disout, DisoutO, DisInp, image, DisNeuralSum, RGB);
 					GlobalSumFunc(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, RGB);
-					ImageResult(DisNeuralSum, Disout, nc[layer - 1], RGB);
+					//ImageResult(DisNeuralSum, Disout, nc[layer - 1], RGB);
 					OptDis(DisoutO, nc[layer - 1], RGB, DisOout, 1);
-					GenIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, RGB);
+					DisIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, RGB);
 
 					//Random(nc[0], DisNeuralSum, DisInp, Disout, RGB);
 					Random(n[0], NeuralSum, Inp, out, RGB);
 					GlobalSumFunc(n, layer, NeuralSum, WeightSum, weight, out, RGB);
-					GenToDis(DisInp, nc[0], NeuralSum, DisNeuralSum, Disout, out, RGB);
+					Convert(DisInp, nc[0], NeuralSum, DisNeuralSum, out, RGB);
+					for (int i = 0; i < RGB; i++)
+						InputData << <nc[0], 1 >> > (DisInp, Disout, nc[0], i, DisNeuralSum);
 
 					GlobalSumFunc(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, RGB);
-					ImageResult(DisNeuralSum, Disout, nc[layer - 1], RGB);
+					//ImageResult(DisNeuralSum, Disout, nc[layer - 1], RGB);
 					OptDis(DisoutO, nc[layer - 1], RGB, DisOout, 0);
 					DisIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, RGB);
 				}
@@ -110,24 +113,11 @@ int main() {
 				//std::cout << "12";
 
 				for (int k = 0; k < 10000; k++) {
-					cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(0) + "\\1 (" + std::to_string(k + 1) + ").png");
-					/*Input(n[layer - 1], outO, Oout, image);*/
-					// Random(n[0], NeuralSum, Inp, out);
-					/*InputDiffer(dop, n, layer, WeightSum, nc[0], DisNeuralSum, NeuralSum, DisInp, Disout, weight, out, outO, dop, Inp);
-					GlobalSumFunc(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout);
-					ImageOpt(DisNeuralSum, Disout, nc[layer - 1], outO);*/
-					//InputOutImage(n[layer - 1], outO, Oout, image);
-					//Random(n[0], NeuralSum, Inp, out, RGB);
 					Random(n[0], NeuralSum, Inp, out, RGB);
-					//GlobalSumFunc(n, layer, NeuralSum, WeightSum, weight, out, RGB);
-					//InputData << <n[0], 1 >> > (Inp, out, n[0], 0, 0);
-					//InputOutImage(n[layer - 1], outO, Oout, image, RGB);
 					GlobalSumFunc(n, layer, NeuralSum, WeightSum, weight, out, RGB);
-					//GenIteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del, RGB);
+					Convert(DOout, nc[layer - 1], DisNeuralSum, 0, Disout, RGB);
+					GenIteration(n, layer, NeuralSum, WeightSum, weight, out, delw, DOout, outO, del, RGB);
 					Out(NeuralSum, layer, n, weight, out, result);
-					//OutOutImage(NeuralSum, layer, n, out, result, RGB);
-					//std::cout << WeightSum << std::endl;
-					//cv::waitKey(500);
 				}
 			}
 		}
