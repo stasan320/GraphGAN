@@ -38,13 +38,9 @@ int main() {
 
 	/*---------перевести в const---------*/
 
-	float* outO = new float[n[layer - 1] * RGB];
-	float* DisoutO = new float[nc[layer - 1] * RGB];
-	float* outd = new float[nc[layer - 1] * RGB];
-
-	for(int i = 0; i < nc[layer - 1] * RGB; i++)
-		outd[i] = 1;
-	cudaMemcpy(DisoutO, outd, n[0] * sizeof(float), cudaMemcpyHostToDevice);
+	float* outO = new float[n[layer - 1] * RGB];                //оптимальный вариант генератора в RAM
+	float* DisoutO = new float[nc[layer - 1] * RGB];            //оптимальный вариант дискриминатора в RAM
+	float* DisResult = new float[nc[layer - 1] * RGB];          //решение дискриминатора
 
 	for (int i = 0; i < n[layer - 1] * RGB; i++)
 		outO[i] = 0;
@@ -55,15 +51,15 @@ int main() {
 	cudaMalloc((void**)&del, (NeuralSum - n[0]) * sizeof(float));
 	cudaMalloc((void**)&weight, WeightSum * RGB * sizeof(float));
 	cudaMalloc((void**)&delw, WeightSum * RGB * sizeof(float));
-	cudaMalloc((void**)&Inp, n[0] * RGB * sizeof(float));
-	cudaMalloc((void**)&Oout, n[layer - 1] * RGB * sizeof(float));
+	cudaMalloc((void**)&Inp, n[0] * RGB * sizeof(float));                              //входные данные генератора в GPU RAM
+	cudaMalloc((void**)&Oout, n[layer - 1] * RGB * sizeof(float));                     //оптимальный вариант генератора в GPU RAM
 
 	cudaMalloc((void**)&Disout, DisNeuralSum * RGB * sizeof(float));
 	cudaMalloc((void**)&Disdel, (DisNeuralSum - nc[0]) * sizeof(float));
 	cudaMalloc((void**)&Disweight, DisWeightSum * RGB * sizeof(float));
 	cudaMalloc((void**)&Disdelw, DisWeightSum * RGB * sizeof(float));
-	cudaMalloc((void**)&DisInp, nc[0] * RGB * sizeof(float));
-	cudaMalloc((void**)&DisOout, nc[layer - 1] * RGB * sizeof(float));
+	cudaMalloc((void**)&DisInp, nc[0] * RGB * sizeof(float));                          //входные данные дискриминатора в GPU RAM
+	cudaMalloc((void**)&DisOout, nc[layer - 1] * RGB * sizeof(float));                 //оптимальный вариант дискриминатора в GPU RAM
 
 	DelwNull << < WeightSum, 1 >> > (delw, WeightSum);
 	DelwNull << < DisWeightSum, 1 >> > (Disdelw, DisWeightSum);
@@ -81,30 +77,8 @@ int main() {
 		for (int l = 0; l < 1; l++) {
 			for (int num = 0; num < 1; num++) {
 				for (int k = 0; k < 5000; k++) {
-					/*---------Gen from Iter---------*/
-					/*InputDiffer(dop, n, layer, WeightSum, nc[0], DisNeuralSum, NeuralSum, DisInp, Disout, weight, out, outO, dop, Inp);
-					GlobalSumFunc(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout);
-					for (int i = 0; i < RGB; i++)
-						DisoutO[i] = 0;
-					DisIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, DisInp);
-					/*ImageResult(DisNeuralSum, Disout, nc[layer - 1]);
-					std::cout << std::endl;*/
-
-					/*---------Opt from Iter---------*/
-					/*cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(0) + "\\1 (" + std::to_string(k + 1) + ").png");
-					InputInputImage(nc[0], Disout, outO, DisInp, image, DisNeuralSum);
-					GlobalSumFunc(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout);
-					for (int i = 0; i < RGB; i++)
-						DisoutO[i] = 1;
-					DisIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, DisInp);
-					/*ImageResult(DisNeuralSum, Disout, nc[layer - 1]);
-					std::cout << std::endl;*/
 					cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(1) + "\\1 (" + std::to_string(k + 1) + ").png");
-					cv::imshow("Out", image);
-					cv::waitKey(1);
-					for (int i = 0; i < nc[layer - 1] * RGB; i++)
-						DisoutO[i] = 1;
-					cudaMemcpy(DisOout, DisoutO, nc[layer - 1] * RGB * sizeof(float), cudaMemcpyHostToDevice);
+					OptDis(DisoutO, nc[layer - 1], RGB, DisOout, 1);
 
 					InputInputImage(nc[0], Disout, DisoutO, DisInp, image, DisNeuralSum, RGB);
 					GlobalSumFunc(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, RGB);
@@ -112,12 +86,10 @@ int main() {
 					GenIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, RGB);
 
 					Random(nc[0], DisNeuralSum, DisInp, Disout, RGB);
-					for (int i = 0; i < nc[layer - 1] * RGB; i++)
-						DisoutO[i] = 0;
-					cudaMemcpy(DisOout, DisoutO, nc[layer - 1] * RGB * sizeof(float), cudaMemcpyHostToDevice);
+					OptDis(DisoutO, nc[layer - 1], RGB, DisOout, 0);
 					GlobalSumFunc(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, RGB);
+					DisIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, RGB);
 					ImageResult(DisNeuralSum, Disout, nc[layer - 1], RGB);
-					GenIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, RGB);
 					//std::cout << "12";
 					//ImageResult(DisNeuralSum, Disout, nc[layer - 1], RGB);
 				}
