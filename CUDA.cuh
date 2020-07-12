@@ -2,7 +2,7 @@
 #include "device_launch_parameters.h"
 
 //обнуление delw
-__global__ void DelwNull(float* delw, int sum) {
+__global__ void Null(float* delw, int sum) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	if (index < sum)
 		delw[index] = 0;
@@ -55,12 +55,15 @@ __global__ void DisDelta(float* outO, float* out, float* del, int Onum, int size
 	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
 }
 
-__global__ void GenDelta(float* outO, float* out, float* del, int Onum, int size, int p) {
+__global__ void GenDelta(float* outO, float* out, float* del, int Onum, int size, int p, int RGB, float* var) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	//if (index < size)
 	//del[index] = (log10f(outO[p]) - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
-	del[index] = log2f(1 / outO[p]) * (1 - out[Onum + index]) * out[Onum + index];
+	//del[index] = var * log2f(1 - outO[p]) * (1 - out[Onum + index]) * out[Onum + index];
 	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
+
+
+	del[index] = var[p] * log2f(1 - outO[p]) * (1 - out[Onum + index]) * out[Onum + index];
 }
 
 //последующие дельты
@@ -81,7 +84,7 @@ __global__ void Deltaw(float* weight, float* del, float* out, float* delw, int D
 
 	for (int i = 0; i < layer; i++) {
 		grad = del[Dnum + i] * out[Onum + index];
-		delw[Wnum + index + n * i] = 0.5 * grad + 0.3 * delw[Wnum + index + n * i];
+		delw[Wnum + index + n * i] = 0.5 * grad + 0.002 * delw[Wnum + index + n * i];
 		weight[Wnum + index + n * i] = weight[Wnum + index + n * i] + delw[Wnum + index + n * i];
 	}
 }
@@ -89,7 +92,7 @@ __global__ void Deltaw(float* weight, float* del, float* out, float* delw, int D
 //инициализация весов
 void WeightGen(float* weight, float* delw, int WeightSum, int RGB) {
 	float* data = new float[WeightSum * RGB];
-	float max = 1, min = -1;
+	float max = 3, min = -3;
 	srand(static_cast<unsigned int>(time(0)));
 
 	for (int i = 0; i < WeightSum * RGB; i++) {
@@ -104,7 +107,7 @@ void WeightGen(float* weight, float* delw, int WeightSum, int RGB) {
 void Random(int n, int NeuralSum, float* Inp, float* out, int RGB) {
 	float* data = new float[n * RGB];
 	float max = 1, min = -1;
-	srand(static_cast<unsigned int>(time(0)));
+	srand(static_cast<unsigned int>(clock()));
 
 	for (int i = 0; i < n * RGB; i++) {
 		data[i] = (float)(rand()) / RAND_MAX * (max - min) + min;
@@ -191,11 +194,11 @@ void Backup(int WeightSum, float* weight, float* delw, int p, int RGB) {
 /*---------------neural void func---------------*/
 
 void GlobalSumFunc(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, int RGB) {
-	int Wnum = 0, Onum = 0;
+	int Wnum, Onum;
 
 	for (int p = 0; p < RGB; p++) {
-		/*Wnum = WeightSum * p;
-		Onum = NeuralSum * p;*/
+		Wnum = WeightSum * p;
+		Onum = NeuralSum * p;
 
 		for (int i = 0; i < (layer - 1); i++) {
 			Sumfunc << <n[i + 1], 1 >> > (n[i], Wnum, Onum, weight, out, n[i + 1]);										//int layer, int Wnum, int Onum, float* weight, float* out
@@ -206,7 +209,7 @@ void GlobalSumFunc(int* n, int layer, int NeuralSum, int WeightSum, float* weigh
 }
 
 void DisIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del, int RGB) {
-	int Wnum = 0, Onum = 0, Dnum = 0;
+	int Wnum, Onum, Dnum = 0;
 
 	for (int p = 0; p < RGB; p++) {
 		Wnum = WeightSum * (p + 1);
@@ -234,14 +237,14 @@ void DisIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight
 	}
 }
 
-void GenIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del, int RGB) {
+void GenIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del, int RGB, float* var) {
 	int Wnum = 0, Onum = 0, Dnum = 0;
 
 	for (int p = 0; p < RGB; p++) {
 		Wnum = WeightSum * (p + 1);
 		Onum = NeuralSum * (p + 1) - n[layer - 1];
 
-		GenDelta << <n[layer - 1], 1 >> > (Oout, out, del, Onum, n[layer - 1], p);
+		GenDelta << <n[layer - 1], 1 >> > (Oout, out, del, Onum, n[layer - 1], p, RGB, var);
 
 		for (int j = 0; j < layer - 1; j++) {
 			Onum = Onum - n[layer - 2 - j];
@@ -411,20 +414,43 @@ void OptDis(float* DisoutO, int nc, int RGB, float* DisOout, int p) {
 	cudaMemcpy(DisOout, DisoutO, nc * RGB * sizeof(float), cudaMemcpyHostToDevice);
 }
 
-void Convert(float* Inp, int n, int NeuralSum, int DisNeuralSum, float* out, int RGB) {
+void Convert(float* Inp, int n, int NeuralSum, int DisNeuralSum, float* Disout, float* out, int RGB) {
 	float* data = new float[n * RGB];
 	float* weights = new float[NeuralSum * RGB];
 
 	cudaMemcpy(weights, out, NeuralSum * RGB * sizeof(float), cudaMemcpyDeviceToHost);
 	for (int j = 0; j < RGB; j++) {
 		for (int i = 0; i < n; i++) {
-			data[i] = weights[NeuralSum * (j + 1) - n];
+			data[i + n * j] = weights[NeuralSum * (j + 1) - n + i];
 		}
 	}
 
 	cudaMemcpy(Inp, data, n * RGB * sizeof(float), cudaMemcpyHostToDevice);
-	/*for (int i = 0; i < RGB; i++)
-		InputData << <n, 1 >> > (Inp, Disout, n, i, DisNeuralSum);*/
+	for (int i = 0; i < RGB; i++)
+		InputData << <n, 1 >> > (Inp, Disout, n, i, DisNeuralSum);
+	delete[] weights;
+	delete[] data;
+}
+
+void ConvertDis(float* Inp, int n, int NeuralSum, int DisNeuralSum, float* Disout, int RGB, float* var, float* Vvar) {
+	float* weights = new float[DisNeuralSum * RGB];
+	float* data = new float[RGB];
+	cudaMemcpy(weights, Disout, DisNeuralSum * RGB * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data, Inp, RGB * sizeof(float), cudaMemcpyDeviceToHost);
+	//std::cout << data[0] << " 1" << std::endl;
+	Vvar[0] = data[0];
+	for (int i = 0; i < RGB; i++) {
+		data[i] = weights[(i + 1) * DisNeuralSum - n];
+		//std::cout << data[i] << " 0" << std::endl;
+	}
+	Vvar[0] = data[0] - Vvar[0];
+	if (Vvar[0] < 0)
+		Vvar[0] = -1;
+	else if(Vvar > 0) {
+		Vvar[0] = 1;
+	}
+	cudaMemcpy(Inp, data, RGB * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(var, Vvar, RGB * sizeof(float), cudaMemcpyHostToDevice);
 	delete[] weights;
 	delete[] data;
 }
