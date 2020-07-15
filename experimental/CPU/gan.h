@@ -65,7 +65,7 @@ void GenIter(double* del, double* outO, double* out, double* weight, double* del
 	int coat = 3;
 	int Dnum = 0, Onum = 0, Wnum = 0;
 
-	del[ind] = (1 - outO[0]) * k * iter/* * (1 - out[n[1] + n[1] + ind]) * out[n[1] + n[1] + ind]*/;
+	del[ind] = log2f(outO[0]) * k * iter /** (1 - out[n[0] + n[1] + ind]) * out[n[0] + n[1] + ind]*/;
 
 	Dnum = n[2];
 	Wnum = n[0] * n[1];
