@@ -1,3 +1,4 @@
+//#include <F:/coat.txt>
 #include <windows.h>
 #include <iostream>
 #include <cmath>
@@ -10,7 +11,7 @@ const int coat = 3;
 
 
 int main() {
-	int  w = 0, n[coat] = { 2, 2, 1 }, kl, nc[coat] = { 2, 2, 2 };
+	int  w = 0, n[coat] = { 2, 2, 1 }, kl, nc[coat] = { 2, 3, 2 };
 	double iter = 1, per, Giter = 1;
 	int min = -1, max = 1;
 
@@ -77,7 +78,7 @@ int main() {
 	for (int k = 0; k < 100000; k++) {
 		//std::cout << k << endl;
 
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 50; i++) {
 			//Iter random data//
 			Random(Gout, nc[0]);
 			Sum(Gweight, Gout, nc);
@@ -92,8 +93,8 @@ int main() {
 			//}
 			//Iter true data//
 			for (int j = 0; j < 5; j++) {
-				out[0] = 0.7;
-				out[1] = 0.7;
+				out[0] = 1;
+				out[1] = 0.2;
 				Sum(weight, out, n);
 				//Out(out, n);
 				//std::cout << std::endl;
@@ -116,7 +117,7 @@ int main() {
 				//std::cout << endl;
 				Sum(weight, out, n);
 				for (int j = 0; j < n[2]; j++) {
-					std::cout << "Error " << out[n[0] + n[1] + j] << endl;
+					//std::cout << "Error " << out[n[0] + n[1] + j] << endl;
 				}
 				//Out(out, n);
 				std::cout << std::endl;
@@ -143,7 +144,7 @@ int main() {
 				}
 				if ((GoutO[0] - GoutO[1]) < 0) {
 					//del[i] = (1 - GoutO[0]);
-					per = -1.5;
+					per = -2;
 					GenIter(Gdel, GoutO, Gout, Gweight, Gdelw, nc, var, i, per, Giter);
 				}
 			}
