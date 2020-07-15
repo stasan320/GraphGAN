@@ -1,4 +1,3 @@
-//#include <F:/coat.txt>
 #include <windows.h>
 #include <iostream>
 #include <cmath>
@@ -11,7 +10,8 @@ const int coat = 3;
 
 
 int main() {
-	int  w = 0, n[coat] = { 2, 2, 1 }, l, kl, nc[coat] = { 2, 3, 2 };
+	int  w = 0, n[coat] = { 2, 2, 1 }, kl, nc[coat] = { 2, 2, 2 };
+	double iter = 1, per, Giter = 1;
 	int min = -1, max = 1;
 
 	double ka = 0;
@@ -60,13 +60,13 @@ int main() {
 	double* delw = new double[n[0] * n[1] + n[1] * n[2]];
 	//double* grad = new double[w];
 
-	for (int i = 0; i < w; i++) {
+	for (int i = 0; i < n[0] * n[1] + n[1] * n[2]; i++) {
 		weight[i] = 1 / (1 + exp(-i));
 		delw[i] = 0;
 	}
 
 
-	GoutO[0] = 0;
+	GoutO[0] = 1;
 	GoutO[1] = 1;
 	var[0] = 1;
 	var[1] = 1;
@@ -75,7 +75,9 @@ int main() {
 	outO[4] = 1;*/
 
 	for (int k = 0; k < 100000; k++) {
-		for (int i = 0; i < 100; i++) {
+		//std::cout << k << endl;
+
+		for (int i = 0; i < 10; i++) {
 			//Iter random data//
 			Random(Gout, nc[0]);
 			Sum(Gweight, Gout, nc);
@@ -84,35 +86,68 @@ int main() {
 			}
 			Sum(weight, out, n);
 			//Out(out, n);
-			outO[0] = 0;
-			DisIter(del, outO, out, weight, delw, n);
-
-			//Iter true data//
-			out[0] = 0;
-			out[1] = 1;
-			Sum(weight, out, n);
-			//Out(out, n);
 			//std::cout << std::endl;
-			outO[0] = 1;
-			DisIter(del, outO, out, weight, delw, n);
+			outO[0] = 0;
+			DisIter(del, outO, out, weight, delw, n, Giter);
+			//}
+			//Iter true data//
+			for (int j = 0; j < 5; j++) {
+				out[0] = 0.7;
+				out[1] = 0.7;
+				Sum(weight, out, n);
+				//Out(out, n);
+				//std::cout << std::endl;
+				//if ((out[n[0] + n[1]] > 0.8) && (k > 5)) {
+				outO[0] = 1;
+				DisIter(del, outO, out, weight, delw, n, Giter);
+			}
 		}
 
-		for (int i = 0; i < 100; i++) {
-			//Iter random data//
-			Random(Gout, nc[0]);
-			Sum(Gweight, Gout, nc);
-			Out(Gout, nc);
-			std::cout << std::endl;
-			for (int j = 0; j < n[0]; j++) {
-				out[j] = Gout[n[0] + n[1] + j];
-			}
-			Sum(weight, out, n);
+		for (int j = 0; j < 10; j++) {
+			for (int i = 0; i < 2; i++) {
+				//round 1
+				Random(Gout, nc[0]);
+				Sum(Gweight, Gout, nc);
+				//Out(Gout, nc);
+				for (int j = 0; j < n[0]; j++) {
+					out[j] = Gout[nc[0] + nc[1] + j];
+					std::cout << Gout[nc[0] + nc[1] + j] << std::endl;
+				}
+				//std::cout << endl;
+				Sum(weight, out, n);
+				for (int j = 0; j < n[2]; j++) {
+					std::cout << "Error " << out[n[0] + n[1] + j] << endl;
+				}
+				//Out(out, n);
+				std::cout << std::endl;
+				for (int j = 0; j < n[2]; j++) {
+					GoutO[1] = GoutO[0];
+					GoutO[0] = out[n[0] + n[1] + j];
+					//std::cout << GoutO[0] - GoutO[1] << std::endl;
+				}
+				//del[i] = (1 - GoutO[0]);
+				per = 1;
+				GenIter(Gdel, GoutO, Gout, Gweight, Gdelw, nc, var, i, per, Giter);
 
-			GoutO[1] = GoutO[0];
-			GoutO[0] = out[n[0] + n[1]];
-			//del[0] = (GoutO[0] - out[n[0] + n[1] + 0]) * out[n[0] + n[1] + 0] * (1 - out[n[0] + n[1] + 0]);
-			del[] = (1 - GoutO[0]);
-			GenIter(Gdel, GoutO, Gout, Gweight, Gdelw, nc, var);
+				//round 2
+				Random(Gout, nc[0]);
+				Sum(Gweight, Gout, nc);
+				for (int j = 0; j < n[0]; j++) {
+					out[j] = Gout[nc[0] + nc[1] + j];
+				}
+				Sum(weight, out, n);
+				for (int j = 0; j < n[2]; j++) {
+					GoutO[1] = GoutO[0];
+					GoutO[0] = out[n[0] + n[1] + j];
+					//std::cout << GoutO[0] - GoutO[1] << std::endl;
+				}
+				if ((GoutO[0] - GoutO[1]) < 0) {
+					//del[i] = (1 - GoutO[0]);
+					per = -1.5;
+					GenIter(Gdel, GoutO, Gout, Gweight, Gdelw, nc, var, i, per, Giter);
+				}
+			}
+			Giter = Giter * 0.999;
 		}
 	}
 	return 0;
