@@ -16,12 +16,12 @@ void Sum(double* weight, double* out, int* n) {
 	}
 }
 
-void DisIter(double* del, double* outO, double* out, double* weight, double* delw, int* n) {
+void DisIter(double* del, double* outO, double* out, double* weight, double* delw, int* n, double iter) {
 	int coat = 3;
 	int Dnum = 0, Onum = 0, Wnum = 0;
 
 	for (int i = 0; i < n[2]; i++) {
-		del[i] = (outO[i] - out[n[0] + n[1] + i]) * out[n[0] + n[1] + i] * (1 - out[n[0] + n[1] + i]);
+		del[i] = (outO[i] - out[n[0] + n[1] + i]) * out[n[0] + n[1] + i] * (1 - out[n[0] + n[1] + i]) * iter;
 	}
 	Dnum = n[2];
 	Wnum = n[0] * n[1];
@@ -61,9 +61,11 @@ void DisIter(double* del, double* outO, double* out, double* weight, double* del
 	}
 }
 
-void GenIter(double* del, double* outO, double* out, double* weight, double* delw, int* n, int* var, int ind) {
+void GenIter(double* del, double* outO, double* out, double* weight, double* delw, int* n, int* var, int ind, double k, double iter) {
 	int coat = 3;
 	int Dnum = 0, Onum = 0, Wnum = 0;
+
+	del[ind] = (1 - outO[0]) * k * iter/* * (1 - out[n[1] + n[1] + ind]) * out[n[1] + n[1] + ind]*/;
 
 	Dnum = n[2];
 	Wnum = n[0] * n[1];
@@ -80,11 +82,10 @@ void GenIter(double* del, double* outO, double* out, double* weight, double* del
 
 	for (int i = 0; i < n[1]; i++) {
 		double grad = 0;
-		for (int j = 0; j < n[2]; j++) {
-			grad = del[Dnum + j] * out[Onum + i];
-			delw[Wnum + i + n[coat - 2] * j] = 0.5 * grad + 0.3 * delw[Wnum + i + n[coat - 2] * j];
-			weight[Wnum + i + n[coat - 2] * j] = weight[Wnum + i + n[coat - 2] * j] + delw[Wnum + i + n[coat - 2] * j];
-		}
+		grad = del[Dnum + ind] * out[Onum + i];
+		//std::cout << grad << std::endl;
+		delw[Wnum + i + n[1] * ind] = 0.5 * grad + 0.3 * delw[Wnum + i + n[1] * ind];
+		weight[Wnum + i + n[1] * ind] = weight[Wnum + i + n[1] * ind] + delw[Wnum + i + n[1] * ind];
 	}
 
 	Dnum = n[2];
