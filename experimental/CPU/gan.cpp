@@ -88,10 +88,9 @@ int main() {
 			Sum(Gweight, Gout, nc);
 			for (int j = 0; j < n[0]; j++) {
 				out[j] = Gout[nc[0] + nc[1] + j];
-
 				//std::cout << out[j] << endl;
 			}
-			Sum(weight, out, n);
+			SumD(weight, out, n);
 			//Out(out, n);
 			//std::cout << std::endl;
 			outO[0] = 0;
@@ -102,8 +101,8 @@ int main() {
 			//Iter true data//
 			for (int j = 0; j < 10; j++) {
 				out[0] = 0.2;
-				out[1] = 0.7;
-				Sum(weight, out, n);
+				out[1] = 0.4;
+				SumD(weight, out, n);
 				//if ((out[n[0] + n[1]] > 0.8) && (k > 5)) {
 				outO[0] = 1;
 				DisIter(del, outO, out, weight, delw, n, iter);
