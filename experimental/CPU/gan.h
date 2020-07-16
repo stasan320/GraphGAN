@@ -4,7 +4,14 @@ void Sum(double* weight, double* out, int* n) {
 		for (int j = 0; j < n[0]; j++) {
 			net = weight[i * n[0] + j] * out[j] + net;
 		}
-		out[n[0] + i] = (exp(2 * net) - 1) / (1 + exp(2 * net));
+		//out[n[0] + i] = 1 / (1 + exp(-net));
+		/*if (net < 0) {
+			out[n[0] + i] = 0;
+		}
+		else {
+			out[n[0] + i] = net;
+		}*/
+		out[n[0] + i] = 1 / (1 + exp(-net));
 	}
 
 	for (int i = 0; i < n[2]; i++) {
@@ -12,7 +19,32 @@ void Sum(double* weight, double* out, int* n) {
 		for (int j = 0; j < n[1]; j++) {
 			net = weight[n[0] * n[1] + i * n[1] + j] * out[n[0] + j] + net;
 		}
-		out[n[0] + n[1] + i] = (exp(2 * net) - 1) / (1 + exp(2 * net));
+		//out[n[0] + n[1] + i] = (exp(2 * net) - 1) / (1 + exp(2 * net));
+		out[n[0] + n[1] + i] = 1 / (1 + exp(-net));
+		/*if (net < 0) {
+			out[n[0] + n[1] + i] = 0;
+		}
+		else {
+			out[n[0] + n[1] + i] = net;
+		}*/
+	}
+}
+
+void SumD(double* weight, double* out, int* n) {
+	for (int i = 0; i < n[1]; i++) {
+		double net = 0;
+		for (int j = 0; j < n[0]; j++) {
+			net = weight[i * n[0] + j] * out[j] + net;
+		}
+		out[n[0] + i] = 1 / (1 + exp(-net));
+	}
+
+	for (int i = 0; i < n[2]; i++) {
+		double net = 0;
+		for (int j = 0; j < n[1]; j++) {
+			net = weight[n[0] * n[1] + i * n[1] + j] * out[n[0] + j] + net;
+		}
+		out[n[0] + n[1] + i] = 1 / (1 + exp(-net));
 	}
 }
 
