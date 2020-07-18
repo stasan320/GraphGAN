@@ -26,7 +26,6 @@ void SumD(float* weight, float* out, int* n, int layer) {
 		Wnum = Wnum + n[k] * n[k + 1];
 		Onum = Onum + n[k];
 	}
-
 }
 
 void DisIter(float* del, float* outO, float* out, float* weight, float* delw, int* n, float iter, int layer, int NeuralSum, int WeightSum) {
@@ -68,7 +67,7 @@ void DisIter(float* del, float* outO, float* out, float* weight, float* delw, in
 	}
 }
 
-void GenIter(float* del, float* outO, float* out, float* weight, float* delw, int* n, int* var, int ind, float k, float iter) {
+void GenIter(float* del, float* outO, float* out, float* weight, float* delw, int* n, int ind, float k, float iter) {
 	int layer = 3;
 	int Dnum = 0, Onum = 0, Wnum = 0;
 
@@ -116,6 +115,7 @@ void Random(float* out, int n) {
 		float per;
 		per = (float)(rand()) / RAND_MAX * 2 - 1;
 		out[i] = (float)(rand()) / RAND_MAX;
+		//cout << out[i] << endl;
 	}
 }
 
