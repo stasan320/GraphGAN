@@ -17,9 +17,6 @@ int main() {
 	float iter = 1, per, Giter = 1;
 	int min = -1, max = 1, DNeuralSum = 0, GNeuralSum = 0, DWeightSum = 0, GWeightSum = 0;
 
-	float ka = 0;
-	int var[2];
-
 	for (int i = 0; i < layer; i++) {
 		DNeuralSum = n[i] + DNeuralSum;
 	}
@@ -39,7 +36,6 @@ int main() {
 	float* out = new float[DNeuralSum];
 	float* weight = new float[DWeightSum];
 	float* delw = new float[DWeightSum];
-	w = 0;
 
 	float* GoutO = new float[nc[layer - 1]];
 	float* Gdel = new float[GNeuralSum - nc[0]];
@@ -60,13 +56,6 @@ int main() {
 
 	GoutO[0] = 1;
 	GoutO[1] = 1;
-	var[0] = 1;
-	var[1] = 1;
-
-
-	/*outO[2] = 0.6;
-	outO[3] = 0.785;
-	outO[4] = 1;*/
 
 	Random(Gout, nc[0]);
 
@@ -100,8 +89,6 @@ int main() {
 			//Out(out, n);
 			//std::cout << std::endl;
 		}
-		//std::cout << k << endl;
-		//return 0;
 
 		for (int j = 0; j < 250; j++) {
 			for (int i = 0; i < 2; i++) {
@@ -125,9 +112,8 @@ int main() {
 					GoutO[0] = out[n[0] + n[1] + j];
 					//std::cout << GoutO[0] - GoutO[1] << std::endl;
 				}
-				//del[i] = (1 - GoutO[0]);
 				per = 1;
-				GenIter(Gdel, GoutO, Gout, Gweight, Gdelw, nc, var, i, per, Giter);
+				GenIter(Gdel, GoutO, Gout, Gweight, Gdelw, nc, i, per, Giter);
 				Giter = Giter * 0.999;
 
 				//round 2
@@ -143,9 +129,8 @@ int main() {
 					//std::cout << GoutO[0] - GoutO[1] << std::endl;
 				}
 				if ((GoutO[0] - GoutO[1]) <= 0) {
-					//del[i] = (1 - GoutO[0]);
-					per = -1.7;
-					GenIter(Gdel, GoutO, Gout, Gweight, Gdelw, nc, var, i, per, Giter);
+					per = -1.5;
+					GenIter(Gdel, GoutO, Gout, Gweight, Gdelw, nc, i, per, Giter);
 				}
 			}
 			//Giter = Giter * 0.999;
