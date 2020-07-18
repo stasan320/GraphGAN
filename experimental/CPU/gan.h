@@ -36,7 +36,7 @@ void DisIter(float* del, float* outO, float* out, float* weight, float* delw, in
 		del[i] = (outO[i] - out[n[0] + n[1] + i]) * out[n[0] + n[1] + i] * (1 - out[n[0] + n[1] + i]) * iter;
 	}
 
-	for (int k = 1; k < (layer - 1); k++) {
+	for (int k = 1; k < (layer); k++) {
 		Onum = Onum - n[layer - k - 1];
 		Wnum = Wnum - n[layer - k - 1] * n[layer - k];
 		for (int i = 0; i < n[layer - k - 1]; i++) {
@@ -50,29 +50,21 @@ void DisIter(float* del, float* outO, float* out, float* weight, float* delw, in
 	}
 
 	Dnum = 0;
-	Onum = n[0];
-	Wnum = n[0] * n[1];
+	Onum = NeuralSum - n[layer - 1];
+	Wnum = WeightSum;
 
-	for (int i = 0; i < n[1]; i++) {
-		float grad = 0;
-		for (int j = 0; j < n[2]; j++) {
-			grad = del[Dnum + j] * out[Onum + i];
-			delw[Wnum + i + n[layer - 2] * j] = 0.5 * grad + 0.3 * delw[Wnum + i + n[layer - 2] * j];
-			weight[Wnum + i + n[layer - 2] * j] = weight[Wnum + i + n[layer - 2] * j] + delw[Wnum + i + n[layer - 2] * j];
+	for (int k = 1; k < (layer); k++) {
+		Onum = Onum - n[layer - k - 1];
+		Wnum = Wnum - n[layer - k] * n[layer - k - 1];
+		for (int i = 0; i < n[layer - k - 1]; i++) {
+			float grad = 0;
+			for (int j = 0; j < n[layer - k]; j++) {
+				grad = del[Dnum + j] * out[Onum + i];
+				delw[Wnum + i + n[layer - 2] * j] = 0.5 * grad + 0.3 * delw[Wnum + i + n[layer - 2] * j];
+				weight[Wnum + i + n[layer - 2] * j] = weight[Wnum + i + n[layer - 2] * j] + delw[Wnum + i + n[layer - 2] * j];
+			}
 		}
-	}
-
-	Dnum = n[2];
-	Onum = 0;
-	Wnum = 0;
-
-	for (int i = 0; i < n[0]; i++) {
-		float grad = 0;
-		for (int j = 0; j < n[1]; j++) {
-			grad = del[Dnum + j] * out[Onum + i];
-			delw[Wnum + i + n[layer - 3] * j] = 0.5 * grad + 0.3 * delw[Wnum + i + n[layer - 3] * j];
-			weight[Wnum + i + n[layer - 3] * j] = weight[Wnum + i + n[layer - 3] * j] + delw[Wnum + i + n[layer - 3] * j];
-		}
+		Dnum = Dnum + n[layer - k];
 	}
 }
 
