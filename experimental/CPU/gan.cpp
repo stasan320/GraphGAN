@@ -9,11 +9,11 @@
 
 using namespace std;
 
-const int layer = 3;
+const int layer = 4;
 
 
 int main() {
-	int  w = 0, n[layer] = { 2, 4, 1 }, kl, nc[layer] = { 2, 3, 2 };
+	int  w = 0, n[layer] = { 2, 4, 3, 1 }, kl, nc[layer] = { 2, 4, 3, 2 };
 	float iter = 1, per, Giter = 1;
 	int min = -1, max = 1, DNeuralSum = 0, GNeuralSum = 0, DWeightSum = 0, GWeightSum = 0;
 
@@ -70,7 +70,7 @@ int main() {
 			Random(Gout, nc[0]);
 			SumG(Gweight, Gout, nc, layer);
 			for (int j = 0; j < n[0]; j++) {
-				out[j] = Gout[nc[0] + nc[1] + j];
+				out[j] = Gout[GNeuralSum - nc[layer - 1] + j];
 				//std::cout << out[j] << endl;
 			}
 			SumD(weight, out, n, layer);
@@ -84,7 +84,7 @@ int main() {
 			//Iter true data//
 			for (int j = 0; j < 1; j++) {
 				out[0] = 0.4;
-				out[1] = 0.3;
+				out[1] = 0.7;
 				SumD(weight, out, n, layer);
 				//if ((out[n[0] + n[1]] > 0.8) && (k > 5)) {
 				outO[0] = 1;
@@ -102,8 +102,8 @@ int main() {
 				SumG(Gweight, Gout, nc, layer);
 				//Out(Gout, nc);
 				for (int j = 0; j < n[0]; j++) {
-					out[j] = Gout[GNeuralSum - nc[layer - 1] + j];
-					std::cout << Gout[GNeuralSum - nc[layer - 1] + j] << std::endl;
+					out[j] = Gout[GNeuralSum - n[0] + j];
+					std::cout << Gout[GNeuralSum - n[0] + j] << std::endl;
 				}
 				//std::cout << endl;
 				SumD(weight, out, n, layer);
@@ -116,7 +116,7 @@ int main() {
 				}
 				per = 1;
 				GenIter(Gdel, GoutO, Gout, Gweight, Gdelw, nc, i, per, Giter, layer, GWeightSum, GNeuralSum);
-				Giter = Giter * 0.999;
+				Giter = Giter * 0.9999;
 
 				//round 2
 				//Random(Gout, nc[0]);
