@@ -32,7 +32,7 @@ void DisIter(float* del, float* outO, float* out, float* weight, float* delw, in
 	int Dnum = 0, Onum = NeuralSum - n[layer - 1], Wnum = WeightSum;
 
 	for (int i = 0; i < n[layer - 1]; i++) {
-		del[i] = (outO[i] - out[n[0] + n[1] + i]) * out[n[0] + n[1] + i] * (1 - out[n[0] + n[1] + i]) * iter;
+		del[i] = (outO[i] - out[NeuralSum - n[layer - 1] + i]) * out[NeuralSum - n[layer - 1] + i] * (1 - out[NeuralSum - n[layer - 1] + i]) * iter;
 	}
 
 	for (int k = 1; k < (layer - 1); k++) {
@@ -81,7 +81,8 @@ void GenIter(float* del, float* outO, float* out, float* weight, float* delw, in
 		del[Dnum + i] = (1 - out[Onum + i]) * out[Onum + i] * per;
 	}
 
-	Wnum = Wnum - n[layer - 2] * n[layer - 3];
+	//Dnum = Dnum + n[layer - 2];
+	//Wnum = Wnum - n[layer - 2] * n[layer - 3];
 
 	for (int k = 2; k < (layer - 1); k++) {
 		Onum = Onum - n[layer - k - 1];
@@ -108,7 +109,7 @@ void GenIter(float* del, float* outO, float* out, float* weight, float* delw, in
 		weight[Wnum + i + n[layer - 2] * ind] = weight[Wnum + i + n[layer - 2] * ind] + delw[Wnum + i + n[layer - 2] * ind];
 	}
 
-	//Dnum = Dnum + n[layer - 1];
+	Dnum = Dnum + n[layer - 1];
 	//Onum = Onum - n[layer - 3];
 	//Wnum = 0;
 
