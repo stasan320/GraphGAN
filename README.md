@@ -1,4 +1,3 @@
-CUDA GAN, working. I must fix CUDA threadId functions + сегментация изображения на входе
+CUDA GAN, not working. I must fix CUDA threadId functions + сегментация изображения на входе
 
-
-fix fing delta gen
+CPU GAN, Universal GAN version working 
