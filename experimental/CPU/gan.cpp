@@ -111,7 +111,7 @@ int main() {
 		}
 
 		for (int d = 0; d < 1; d++) {
-			for (int i = 0; i < nc[layer - 1]; i++) {
+			for (int i = 0; i < nc[layer - 1]; i++) {            //random
 				for (int j = 0; j < 2; j++) {
 					//round 1
 					Random(Gout, nc[0]);
