@@ -22,7 +22,7 @@ public:
             //std::cout << *p << std::endl;
             Gcoat[i] = *p;
             p++;
-            p++;
+            p++;  //i dnt know, but its working
         }
     }
 }Generator;
