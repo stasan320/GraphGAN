@@ -21,10 +21,11 @@ private:
             weight = weight + Generator::coat[i] * Generator::coat[i + 1];
         return weight;
     }
+
 public:
     int WeightSum = 0, NeuronSum = 0;
     int* coat = new int[GeneratorLayer];
-    //std::vector<int> coat;
+
     void CreateCoat(int data, ...) {
         int* p = &data;
         for (int i = 0; i < GeneratorLayer; i++) {
@@ -32,13 +33,20 @@ public:
             p++;
             p++;
         }
-    }
-    void Initialization() {
         Generator::NeuronSum = InitializationNeuronSum();
         Generator::WeightSum = InitializationWeightSum();
     }
-    int* weight = new int[WeightSum];
-    int* out = new int[NeuronSum];
+
+    float* weight = new float[WeightSum];
+    float* delw = new float[WeightSum];
+    float* out = new float[NeuronSum];
+
+    void Initialization() {
+        for (int i = 0; i < Generator::WeightSum; i++) {
+            Generator::weight[i] = 0;
+            Generator::delw[i] = 0;
+        }
+    }
 }Generator;
 
 
