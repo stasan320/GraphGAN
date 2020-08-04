@@ -11,8 +11,8 @@ const int layer = 3;
 int main() {
 	int WeightSum = 0, NeuralSum = 0, n[layer] = { 16, 64, 784 }, int dop = 0, RGB = 3,
 		DisWeightSum = 0, DisNeuralSum = 0, nc[layer] = { 784, 64, 1 };
-	float * del, * delw, * weight, * out, * Inp, * Oout,
-		  * Disdel, * Disdelw, * Disweight, * Disout, * DisInp, * DisOout;
+	float* del, * delw, * weight, * out, * Inp, * Oout,
+		* Disdel, * Disdelw, * Disweight, * Disout, * DisInp, * DisOout;
 	clock_t t1;
 	std::string filename;
 
@@ -65,9 +65,9 @@ int main() {
 
 	cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\0\\1 (9).png");
 	cv::Mat result(image.rows, image.cols, CV_8UC1);
-	InputOutImage(n[layer - 1], outO, Oout, image);
-	DataCheck(WeightSum, weight, delw, 0);
-	DataCheck(DisWeightSum, Disweight, Disdelw, 1);
+	InputOutImage(n[layer - 1], outO, Oout, image, RGB);
+	DataCheck(WeightSum, weight, delw, 0, RGB);
+	DataCheck(DisWeightSum, Disweight, Disdelw, 1, RGB);
 
 	t1 = clock();
 	for (int adm = 0; adm < 1000; adm++) {
@@ -93,8 +93,8 @@ int main() {
 					DisIteration(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout, Disdelw, DisOout, DisoutO, Disdel, DisInp);
 					/*ImageResult(DisNeuralSum, Disout, nc[layer - 1]);
 					std::cout << std::endl;*/
-				/*}
-				dop = 1;*/
+					/*}
+					dop = 1;*/
 
 				for (int k = 0; k < 5000; k++) {
 					/*cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(num + 1) + ").png");
@@ -104,14 +104,14 @@ int main() {
 					GlobalSumFunc(nc, layer, DisNeuralSum, DisWeightSum, Disweight, Disout);
 					ImageOpt(DisNeuralSum, Disout, nc[layer - 1], outO);*/
 					//InputOutImage(n[layer - 1], outO, Oout, image);
-					Random(n[0], NeuralSum, Inp, out);
-					GenIteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del);
-					OutOutImage(NeuralSum, layer, n, out, result);
+					Random(n[0], NeuralSum, Inp, out, RGB);
+					GenIteration(n, layer, NeuralSum, WeightSum, weight, out, delw, Oout, outO, del, RGB);
+					OutOutImage(NeuralSum, layer, n, out, result, RGB);
 					//std::cout << WeightSum << std::endl;
 				}
 			}
 		}
-		Backup(WeightSum, weight, delw, 0);
-		Backup(DisWeightSum, Disweight, Disdelw, 1);
+		Backup(WeightSum, weight, delw, 0, RGB);
+		Backup(DisWeightSum, Disweight, Disdelw, 1, RGB);
 	}
 }
