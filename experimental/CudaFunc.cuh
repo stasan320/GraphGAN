@@ -13,7 +13,7 @@ __global__ void InputData(float* data, float* out, int size, int p, int NeuralSu
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 
 	//if (index < size)
-		out[NeuralSum * p + index] = data[size * p + index];
+	out[NeuralSum * p + index] = data[size * p + index];
 	//out[index] = 0.542 + (exp2f(2 * index) - 1) / (exp2f(2 * index) + 1);
 }
 
@@ -21,7 +21,7 @@ __global__ void InputDataArr(float* data, float* out, int DisNeuralSum, int p, i
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 
 	//if (index < size)
-		out[NeuralSum * p + index] = data[DisNeuralSum * (p + 1) - size + index];
+	out[NeuralSum * p + index] = data[DisNeuralSum * (p + 1) - size + index];
 	//out[index] = 0.542 + (exp2f(2 * index) - 1) / (exp2f(2 * index) + 1);
 }
 
@@ -330,12 +330,12 @@ void ImageOpt(int NeuralSum, float* out, int n, float* outO, int RGB) {
 
 void InputDiffer(int i, int* n, int layer, int WeightSum, int nc, int DisNeuralSum, int NeuralSum, float* DisInp, float* Disout, float* weight, float* out, float* outO, int p, float* Inp, int RGB) {
 	if (i == 0) {
-		Random(nc, DisNeuralSum, DisInp, Disout);
+		Random(nc, DisNeuralSum, DisInp, Disout, RGB);
 		//i = 1;
 	}
 	else {
-		Random(n[0], NeuralSum, Inp, out);
-		GlobalSumFunc(n, layer, NeuralSum, WeightSum, weight, out);
+		Random(n[0], NeuralSum, Inp, out, RGB);
+		GlobalSumFunc(n, layer, NeuralSum, WeightSum, weight, out, RGB);
 
 		for (int i = 0; i < RGB; i++)
 			InputDataArr << <nc, 1 >> > (out, Disout, DisNeuralSum, i, NeuralSum, nc);
