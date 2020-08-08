@@ -11,6 +11,8 @@ const int coat = 3;
 int main() {
 	cv::Mat result(28, 28, CV_8UC1);
 	int n[coat] = { 1, 2, 784 }, Onum = 0, Dnum = 0, Wnum = 0;
+	clock();
+	
 	for (int i = 0; i < coat; i++) {
 		Onum = Onum + n[i];
 	}
@@ -25,9 +27,7 @@ int main() {
 	float* weight = new float[Wnum];
 	float* delw = new float[Wnum];
 
-	int time = clock();
-
-	Random(weight, -3, 3, 0, Wnum, time);
+	Random(weight, -3, 3, 0, Wnum, clock());
 	for (int i = 0; i < Wnum; i++)
 		delw[i] = 0;
 
