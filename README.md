@@ -1,3 +1,5 @@
-CUDA GAN, not working. I must fix CUDA threadId functions + сегментация изображения на входе
+CUDA GAN, not working
 
-CPU GAN, Universal GAN version working 
+CPU GAN, Universal GAN version not working 
+
+CUDA and CPU perceptron working
