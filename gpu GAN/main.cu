@@ -8,13 +8,14 @@
 
 #include "func.cuh"
 
-const int layer = 4, RGB = 1;
+const int layer = 4;
+const int RGB = 1;
 
 int main() {
 	int WeightSum = 0, NeuralSum = 0, n[layer] = { 4, 16, 4, 784 }, int dop = 0,
 		DisWeightSum = 0, DisNeuralSum = 0, nc[layer] = { 784, 64, 16, 1 };
-	float * del, * delw, * weight, * out, * Inp, * Oout, * DOout,
-		  * Disdel, * Disdelw, * Disweight, * Disout, * DisInp, * DisOout;
+	float* del, * delw, * weight, * out, * Inp, * Oout, * DOout,
+		* Disdel, * Disdelw, * Disweight, * Disout, * DisInp, * DisOout;
 	clock_t t1;
 	std::string filename;
 
@@ -64,8 +65,8 @@ int main() {
 	cudaMalloc((void**)&DisInp, nc[0] * RGB * sizeof(float));                          //входные данные дискриминатора в GPU RAM
 	cudaMalloc((void**)&DisOout, nc[layer - 1] * RGB * sizeof(float));                 //оптимальный вариант дискриминатора в GPU RAM
 
-	DelwNull << < WeightSum, 1 >> > (delw, WeightSum);
-	DelwNull << < DisWeightSum, 1 >> > (Disdelw, DisWeightSum);
+	Null << < WeightSum, 1 >> > (delw, WeightSum);
+	Null << < DisWeightSum, 1 >> > (Disdelw, DisWeightSum);
 
 	cv::Mat image = cv::imread("E:\\Foton\\ngnl_data\\training\\0\\1 (9).png");
 	cv::Mat result(image.rows, image.cols, CV_8UC1);
@@ -102,7 +103,7 @@ int main() {
 					//Random(nc[0], DisNeuralSum, DisInp, Disout, RGB);
 					Random(n[0], NeuralSum, Inp, out, RGB);
 					GlobalSumFunc(n, layer, NeuralSum, WeightSum, weight, out, RGB);
-					Convert(DisInp, nc[0], NeuralSum, DisNeuralSum, out, RGB);
+					Convert(DisInp, nc[0], NeuralSum, DisNeuralSum, Disout, out, RGB);
 					for (int i = 0; i < RGB; i++)
 						InputData << <nc[0], 1 >> > (DisInp, Disout, nc[0], i, DisNeuralSum);
 
@@ -115,8 +116,8 @@ int main() {
 				for (int k = 0; k < 10000; k++) {
 					Random(n[0], NeuralSum, Inp, out, RGB);
 					GlobalSumFunc(n, layer, NeuralSum, WeightSum, weight, out, RGB);
-					Convert(DOout, nc[layer - 1], DisNeuralSum, 0, Disout, RGB);
-					GenIteration(n, layer, NeuralSum, WeightSum, weight, out, delw, DOout, outO, del, RGB);
+					Convert(DOout, nc[layer - 1], DisNeuralSum, 0, Disout, out, RGB);
+					GenIteration(n, layer, NeuralSum, WeightSum, weight, out, delw, DOout, outO, del, RGB, 1);
 					Out(NeuralSum, layer, n, weight, out, result);
 				}
 			}
