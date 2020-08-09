@@ -1,3 +1,5 @@
+//Create by Stasan
+
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
@@ -55,7 +57,7 @@ __global__ void DisDelta(float* outO, float* out, float* del, int Onum, int size
 	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
 }
 
-__global__ void GenDelta(float* outO, float* out, float* del, int Onum, int size, int p, int RGB, float* var) {
+__global__ void GenDelta(float* outO, float* out, float* del, int Onum, int size, int p, int RGB, float var) {
 	int index = blockIdx.x + blockIdx.y * gridDim.x;
 	//if (index < size)
 	//del[index] = (log10f(outO[p]) - out[Onum + index]) * (1 - out[Onum + index]) * out[Onum + index];                                     //sigm
@@ -63,7 +65,7 @@ __global__ void GenDelta(float* outO, float* out, float* del, int Onum, int size
 	//del[index] = (outO[index] - out[Onum + index]) * (1 - out[Onum + index]) * (1 + out[Onum + index]);									//tang
 
 
-	del[index] = var[p] * log2f(1 - outO[p]) * (1 - out[Onum + index]) * out[Onum + index];
+	del[index] = var * log2f(1 - outO[p]) * (1 - out[Onum + index]) * out[Onum + index];
 }
 
 //последующие дельты
@@ -237,7 +239,7 @@ void DisIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight
 	}
 }
 
-void GenIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del, int RGB, float* var) {
+void GenIteration(int* n, int layer, int NeuralSum, int WeightSum, float* weight, float* out, float* delw, float* Oout, float* outO, float* del, int RGB, float var) {
 	int Wnum = 0, Onum = 0, Dnum = 0;
 
 	for (int p = 0; p < RGB; p++) {
