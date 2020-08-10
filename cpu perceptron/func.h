@@ -1,5 +1,5 @@
-void Random(float* Arr, float min, float max, int start, int end, unsigned long long time) {
-	srand(static_cast<unsigned long long>(time));
+void Random(float* Arr, float min, float max, int start, int end, unsigned long long MStime) {
+	srand(static_cast<unsigned long long>(MStime + time(0)));
 	for (int i = start; i < end; i++) {
 		Arr[i] = (float)(rand()) / RAND_MAX * (max - min) + min;
 	}
@@ -13,11 +13,18 @@ void SumFunc(float* out, float* weight, int* n, int num) {
 	}
 
 	for (int i = 0; i < n[num + 1]; i++) {
-		float net = 0;
+		double net = 0;
 		for (int j = 0; j < n[num]; j++) {
-			net = net + weight[Wnum + i * n[num] + j] * out[Onum + j];
+			net = net + weight[Wnum + j + i * n[num]] * out[Onum + j];
 		}
-		out[Onum + n[num] + i] = 1 / (1 + exp(-net));
+		double data = (1 + exp(-2 * net));
+		//if (data != 0) {
+			out[Onum + n[num] + i] = (1 - exp(-2 * net)) / data;
+		/*}
+		else {
+			out[Onum + n[num] + i] = 0;
+		}*/
+		//std::cout << out[Onum + n[num] + i] << std::endl;
 	}
 }
 
@@ -52,8 +59,10 @@ void DisIterNull(float* out, float* outO, float* weight, float* delw, float* del
 		Onum = Onum + n[i];
 	}
 
+
+
 	for (int i = 0; i < n[cout - 1]; i++) {
-		del[i] = (outO[i] - out[Onum + i]) * (1 - out[Onum + i]) * out[Onum + i];
+		del[i] = (outO[i] - out[Onum + i]) * (1 - out[Onum + i]) * (1 + out[Onum + i]);
 	}
 
 	Onum = 0;
@@ -62,7 +71,6 @@ void DisIterNull(float* out, float* outO, float* weight, float* delw, float* del
 		Onum = Onum + n[i];
 		Wnum = Wnum + n[i] * n[i + 1];
 	}
-	//std::cout << Wnum << std::endl;
 
 	for (int i = 0; i < n[cout - 2]; i++) {
 		for (int j = 0; j < n[cout - 1]; j++) {
@@ -80,17 +88,17 @@ void Iter(float* out, float* weight, float* delw, float* del, int* n, int num, i
 		Wnum = Wnum + n[i] * n[i + 1];
 	}
 
-	for (int i = (coat - 1); i > (coat - num - 2); i--) {
-		Dnum = Dnum + n[i];
+	for (int i = 0; i < (num + 1); i++) {
+		Dnum = Dnum + n[coat - i - 1];
 	}
-	//std::cout << Dnum << std::endl;
+	//std::cout << n[coat - num - 2] << std::endl;
 
 	for (int i = 0; i < n[coat - num - 3]; i++) {
 		float per = 0;
 		for (int j = 0; j < n[coat - num - 2]; j++) {
-			per = per + del[Dnum + i] * weight[Wnum + i + n[coat - num - 2] * j];
+			per = per + del[Dnum + j] * weight[Wnum + i + n[coat - num - 3] * j];
 		}
-		del[Dnum + n[coat - num - 2] + i] = (1 - out[Onum + i]) * out[Onum + i] * per;
+		del[Dnum + n[coat - num - 2] + i] = per * (1 - out[Onum + i]) * (1 + out[Onum + i]);;
 	}
 
 	for (int i = 0; i < n[coat - num - 3]; i++) {
@@ -107,8 +115,9 @@ void Image(cv::Mat image, float* out, int Onum) {
 		for (int j = 0; j < image.cols; j++) {
 			float per;
 			per = image.at<cv::Vec3b>(i, j)[0];
-			per = per / 255;
+			per = per / 255 * 2 - 1;
 			out[Onum + j + i * image.cols] = per;
+			//std::cout << out[Onum + j + i * image.cols] << std::endl;
 		}
 	}
 }
