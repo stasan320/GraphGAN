@@ -1,5 +1,4 @@
 #include <iostream>
-#include <vector>
 #include <cmath>
 #include <ctime>
 #include <opencv2/opencv.hpp>
