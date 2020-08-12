@@ -7,3 +7,5 @@ CUDA and CPU perceptron working
 http://github.com/stasan320/GraphGAN/blob/master/image/console.png - automatic!
 
 [GitHub](http://github.com/stasan320/GraphGAN/blob/master/image/console.png?raw=true)
+
+<img align="left" width="100" height="100" src="http://github.com/stasan320/GraphGAN/blob/master/image/console.png">
