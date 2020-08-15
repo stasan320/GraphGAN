@@ -17,13 +17,7 @@ void SumFunc(double* out, double* weight, int* n, int num) {
 		for (int j = 0; j < n[num]; j++) {
 			net = net + weight[Wnum + j + i * n[num]] * out[Onum + j];
 		}
-		//out[Onum + n[num] + i] = (1 - exp(-2 * net)) / (1 + exp(-2 * net));;
 		out[Onum + n[num] + i] = 1 / (1 + exp(-net));
-		/*}
-		else {
-			out[Onum + n[num] + i] = 0;
-		}*/
-		//std::cout << out[Onum + n[num] + i] << std::endl;
 	}
 }
 
@@ -88,7 +82,6 @@ void Iter(double* out, double* weight, double* delw, double* del, int* n, int nu
 	for (int i = 0; i < (num + 1); i++) {
 		Dnum = Dnum + n[coat - i - 1];
 	}
-	//std::cout << n[coat - num - 2] << std::endl;
 
 	for (int i = 0; i < n[coat - num - 3]; i++) {
 		double per = 0;
@@ -114,7 +107,6 @@ void Image(cv::Mat image, double* out, int Onum) {
 			per = image.at<cv::Vec3b>(i, j)[0];
 			per = per / 255 * 1 - 0;
 			out[Onum + j + i * image.cols] = per;
-			//std::cout << out[Onum + j + i * image.cols] << std::endl;
 		}
 	}
 }
