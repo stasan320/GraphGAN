@@ -16,8 +16,11 @@ void SumFunc(double* out, double* weight, int* n, int num) {
 		double net = 0;
 		for (int j = 0; j < n[num]; j++) {
 			net = net + weight[Wnum + j + i * n[num]] * out[Onum + j];
+			if (net != net) {
+				std::cout << "sumfunc" << weight[Wnum + j + i * n[num]] << std::endl;
+			}
 		}
-		out[Onum + n[num] + i] = 1 / (1 + exp(-net));
+		out[Onum + n[num] + i] = 1.0 / (1.0 + exp(-net));
 	}
 }
 
@@ -41,7 +44,6 @@ void GenIterNull(double* out, double outO, double* weight, double* delw, double*
 		double grad = out[Onum + i] * del[index];
 		delw[Wnum + i + index * n[cout - 2]] = 0.5 * grad + 0.03 * delw[Wnum + i + index * n[cout - 2]];
 		weight[Wnum + i + index * n[cout - 2]] = weight[Wnum + i + index * n[cout - 2]] + delw[Wnum + i + index * n[cout - 2]];
-
 	}
 }
 
@@ -53,7 +55,7 @@ void DisIterNull(double* out, double* outO, double* weight, double* delw, double
 	}
 
 	for (int i = 0; i < n[cout - 1]; i++) {
-		del[i] = (outO[i] - out[Onum + i]) * (1 - out[Onum + i]) * out[Onum + i];
+		del[i] = (outO[i] - out[Onum + i]) * (1 - out[Onum  + i]) * out[Onum + i];
 	}
 
 	Onum = 0;
@@ -66,7 +68,7 @@ void DisIterNull(double* out, double* outO, double* weight, double* delw, double
 	for (int i = 0; i < n[cout - 2]; i++) {
 		for (int j = 0; j < n[cout - 1]; j++) {
 			double grad = out[Onum + i] * del[Dnum + j];
-			delw[Wnum + i + j * n[cout - 2]] = 0.7 * grad + 0.3 * delw[Wnum + i + j * n[cout - 2]];
+			delw[Wnum + i + j * n[cout - 2]] = 1.0 * grad + 0.03 * delw[Wnum + i + j * n[cout - 2]];
 			weight[Wnum + i + j * n[cout - 2]] = weight[Wnum + i + j * n[cout - 2]] + delw[Wnum + i + j * n[cout - 2]];
 		}
 	}
@@ -74,27 +76,33 @@ void DisIterNull(double* out, double* outO, double* weight, double* delw, double
 
 void Iter(double* out, double* weight, double* delw, double* del, int* n, int num, int coat) {
 	int Onum = 0, Wnum = 0, Dnum = 0;
+	for (int i = 0; i < (coat - num - 2); i++) {
+		Onum = Onum + n[i];
+		Wnum = Wnum + n[i] * n[i + 1];
+	}
+
+	for (int i = 0; i < (num); i++) {
+		Dnum = Dnum + n[coat - i - 1];
+	}
+
+	for (int i = 0; i < n[coat - num - 2]; i++) {
+		double per = 0;
+		for (int j = 0; j < n[coat - num - 1]; j++) {
+			per = per + del[Dnum + j] * weight[Wnum + i + n[coat - num - 2] * j];
+		}
+		del[Dnum + n[coat - num - 1] + i] = per * (1 - out[Onum + i]) * out[Onum + i];
+	}
+	Dnum = Dnum + n[coat - num - 1];
+	Onum = 0, Wnum = 0;
 	for (int i = 0; i < (coat - num - 3); i++) {
 		Onum = Onum + n[i];
 		Wnum = Wnum + n[i] * n[i + 1];
 	}
 
-	for (int i = 0; i < (num + 1); i++) {
-		Dnum = Dnum + n[coat - i - 1];
-	}
-
-	for (int i = 0; i < n[coat - num - 3]; i++) {
-		double per = 0;
-		for (int j = 0; j < n[coat - num - 2]; j++) {
-			per = per + del[Dnum + j] * weight[Wnum + i + n[coat - num - 3] * j];
-		}
-		del[Dnum + n[coat - num - 2] + i] = per * (1 - out[Onum + i]) * out[Onum + i];
-	}
-
 	for (int i = 0; i < n[coat - num - 3]; i++) {
 		for (int j = 0; j < n[coat - num - 2]; j++) {
 			double grad = out[Onum + i] * del[Dnum + j];
-			delw[Wnum + i + j * n[coat - num - 3]] = 0.5 * grad + 0.03 * delw[Wnum + i + j * n[coat - num - 3]];
+			delw[Wnum + i + j * n[coat - num - 3]] = 1.0 * grad + 0.03 * delw[Wnum + i + j * n[coat - num - 3]];
 			weight[Wnum + i + j * n[coat - num - 3]] = weight[Wnum + i + j * n[coat - num - 3]] + delw[Wnum + i + j * n[coat - num - 3]];
 		}
 	}
@@ -105,8 +113,13 @@ void Image(cv::Mat image, double* out, int Onum) {
 		for (int j = 0; j < image.cols; j++) {
 			double per;
 			per = image.at<cv::Vec3b>(i, j)[0];
-			per = per / 255 * 1 - 0;
-			out[Onum + j + i * image.cols] = per;
+			out[Onum + i * image.cols + j] = per / 255.0;
+		}
+	}
+
+	for (int i = 0; i < 2; i++) {
+		for (int j = 0; j < 2; j++) {
+			out[Onum + i * image.cols + j] = 1.0;
 		}
 	}
 }
