@@ -9,6 +9,7 @@
 #include <opencv2/core/core.hpp>
 
 #include "Header.h"
+#include "time.h"
 
 
 const int coat = 3;
@@ -17,8 +18,7 @@ int main() {
 	cv::Mat result(28, 28, CV_8UC1);
 	cv::Mat image(28, 28, CV_8UC3);
 	cv::Mat errors(100, 300, CV_8UC1);
-	int n[coat] = { 784, 55, 10 }, Onum = 0, Dnum = 0, Wnum = 0;
-	int t = clock();
+	int n[coat] = { 784, 100, 10 }, Onum = 0, Dnum = 0, Wnum = 0;
 
 	for (int i = 0; i < coat; i++) {
 		Onum = Onum + n[i];
@@ -43,10 +43,12 @@ int main() {
 		outO[i] = 0;
 	}
 
+	double error;
+	int t = 0;
 	unsigned int num;
 	std::cout << "Enter the number of epochs: ";
 	std::cin >> num;
-	double error;
+	clock_t d = clock();
 	
 	for (unsigned int epoch = 0; epoch < num; epoch++) {
 		for (int k = 0; k < n[coat - 1]; k++) {
@@ -77,38 +79,12 @@ int main() {
 				error = error + (outO[i] - out[Onum - n[coat - 1] + i]) * (outO[i] - out[Onum - n[coat - 1] + i]);
 			}
 			error = error / n[coat - 1];
-			ErrorOut.push_back(error);
-
-			if (epoch % 1007 == 0) {
-				for (int i = 0; i < errors.rows; i++) {
-					for (int j = 0; j < errors.cols; j++) {
-						errors.at<uchar>(i, j) = 0;
-					}
-				}
-
-				for (int i = 0; i < ErrorOut.size(); i++) {
-					float dat = (float)errors.rows - ErrorOut[i] * (float)errors.rows;
-					if (dat != dat) {
-						std::cout << ErrorOut[i] << std::endl;
-						std::cout << error;
-					}
-					float min = (i * (errors.cols - 1) / (float)ErrorOut.size());
-					float max = (i + 1) * (errors.cols - 1) / (float)ErrorOut.size();
-
-					for (float j = min; j < max; j = j + 1) {
-						errors.at<uchar>(round(dat), round(j)) = 255;
-					}
-				}
-				cv::imshow("Error", errors);
-				cv::waitKey(1);
-			}
-			//return 0;
 			outO[k] = 0.0;
 		}
 
 		if (time(NULL) > t) {
-			std::string sec = "", min = "", hour = "";
 			t = time(NULL);
+			std::string sec = "", min = "", hour = "";
 			for (int i = 0; i < n[coat - 1]; i++) {
 				if (out[Onum - n[coat - 1] + i] != out[Onum - n[coat - 1] + i]) {
 					std::cout << "NaN error";
@@ -128,49 +104,12 @@ int main() {
 			if (ltm->tm_hour < 10) {
 				hour = "0";
 			}
-			std::cout << "[" << hour << ltm->tm_hour << ":" << min << ltm->tm_min << ":" << sec << ltm->tm_sec << "][" << epoch << "][" << std::setprecision(5) << ErrorOut[ErrorOut.size() - epoch % 7] << "] \r";
-		}
-
-		if (t == 0) {
-			std::cout << std::endl;
-			std::cout << "Testing" << std::endl;
-
-			std::vector<int>DErrors(10, 0);
-			for (int k = 0; k < n[coat - 1]; k++) {
-				for (int test = 0; test < 890; test++) {
-					image = cv::imread("D:\\Foton\\ngnl_data\\testing\\" + std::to_string(k) + "\\1 (" + std::to_string(test + 1) + ").png");
-					if (!image.data) {
-						std::cout << "Error upload image " << "D:\\Foton\\ngnl_data\\testing\\" + std::to_string(k) + "\\1 (" + std::to_string(test + 1) + ").png";
-						return -1;
-					}
-					Image(image, out, 0);
-					for (int i = 0; i < (coat - 1); i++) {
-						SumFunc(out, weight, n, i);
-					}
-
-					double data = 0;
-					int number = 0;
-					for (int i = 0; i < n[coat - 1]; i++) {
-						if (data < out[Onum - n[coat - 1] + i]) {
-							data = out[Onum - n[coat - 1] + i];
-							number = i;
-						}
-					}
-					if (k == number) {
-						DErrors[k] = DErrors[k] + 1;
-					}
-				}
-				std::cout << "Result for " << k << ": " << std::setprecision(5) << (double)DErrors[k] / (double)900 << std::endl;
-			}
-			double data = 0;
-			for (int i = 0; i < n[coat - 1]; i++) {
-				data = DErrors[i] + data;
-			}
-			data = data / (900 * (double)n[coat - 1]);
-			std::cout << "Result for all: " << std::setprecision(5) << data << std::endl;
+			std::cout << "[" << hour << ltm->tm_hour << ":" << min << ltm->tm_min << ":" << sec << ltm->tm_sec << "][" << epoch << "][" << std::setprecision(5) << error << "] \r";
 		}
 	}
 
+	std::cout << std::endl;
+	GlobalTime(clock() - d);
 	Testing(image, out, weight, coat, n);
 
 	std::cout << std::endl;
