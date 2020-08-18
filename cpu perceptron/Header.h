@@ -44,6 +44,7 @@ void GenIterNull(double* out, double outO, double* weight, double* delw, double*
 		double grad = out[Onum + i] * del[index];
 		delw[Wnum + i + index * n[cout - 2]] = 0.5 * grad + 0.03 * delw[Wnum + i + index * n[cout - 2]];
 		weight[Wnum + i + index * n[cout - 2]] = weight[Wnum + i + index * n[cout - 2]] + delw[Wnum + i + index * n[cout - 2]];
+
 	}
 }
 
@@ -70,6 +71,9 @@ void DisIterNull(double* out, double* outO, double* weight, double* delw, double
 			double grad = out[Onum + i] * del[Dnum + j];
 			delw[Wnum + i + j * n[cout - 2]] = 1.0 * grad + 0.03 * delw[Wnum + i + j * n[cout - 2]];
 			weight[Wnum + i + j * n[cout - 2]] = weight[Wnum + i + j * n[cout - 2]] + delw[Wnum + i + j * n[cout - 2]];
+			if (weight[Wnum + i + j * n[cout - 2]] != weight[Wnum + i + j * n[cout - 2]]) {
+				std::cout << "Null iter" << weight[Wnum + i + j * n[cout - 2]] << std::endl;
+			}
 		}
 	}
 }
@@ -104,6 +108,10 @@ void Iter(double* out, double* weight, double* delw, double* del, int* n, int nu
 			double grad = out[Onum + i] * del[Dnum + j];
 			delw[Wnum + i + j * n[coat - num - 3]] = 1.0 * grad + 0.03 * delw[Wnum + i + j * n[coat - num - 3]];
 			weight[Wnum + i + j * n[coat - num - 3]] = weight[Wnum + i + j * n[coat - num - 3]] + delw[Wnum + i + j * n[coat - num - 3]];
+			if (weight[Wnum + i + j * n[coat - num - 3]] != weight[Wnum + i + j * n[coat - num - 3]]) {
+				std::cout << "iter" << del[Dnum + j] << std::endl;
+				exit(-1);
+			}
 		}
 	}
 }
@@ -132,4 +140,49 @@ void Out(cv::Mat image, double* out, int Onum) {
 	}
 	cv::imshow("Out", image);
 	cv::waitKey(1);
+}
+
+void Testing(cv::Mat image, double* out, double* weight, int coat, int* n) {
+	int Onum = 0, Wnum = 0, Dnum = 0;
+	for (int i = 0; i < coat; i++) {
+		Onum = Onum + n[i];
+		Wnum = Wnum + n[i] * n[i + 1];
+	}
+
+	std::cout << std::endl;
+	std::cout << "Testing" << std::endl;
+
+	std::vector<int>DErrors(10, 0);
+	for (int k = 0; k < n[coat - 1]; k++) {
+		for (int test = 0; test < 890; test++) {
+			image = cv::imread("D:\\Foton\\ngnl_data\\testing\\" + std::to_string(k) + "\\1 (" + std::to_string(test + 1) + ").png");
+			if (!image.data) {
+				std::cout << "Error upload image " << "D:\\Foton\\ngnl_data\\testing\\" + std::to_string(k) + "\\1 (" + std::to_string(test + 1) + ").png";
+				exit(-1);
+			}
+			Image(image, out, 0);
+			for (int i = 0; i < (coat - 1); i++) {
+				SumFunc(out, weight, n, i);
+			}
+
+			double data = 0;
+			int number = 0;
+			for (int i = 0; i < n[coat - 1]; i++) {
+				if (data < out[Onum - n[coat - 1] + i]) {
+					data = out[Onum - n[coat - 1] + i];
+					number = i;
+				}
+			}
+			if (k == number) {
+				DErrors[k] = DErrors[k] + 1;
+			}
+		}
+		std::cout << "Result for " << k << ": " << std::setprecision(5) << (double)DErrors[k] / (double)890 << std::endl;
+	}
+	double data = 0;
+	for (int i = 0; i < n[coat - 1]; i++) {
+		data = DErrors[i] + data;
+	}
+	data = data / (890 * (double)n[coat - 1]);
+	std::cout << "Result for all: " << std::setprecision(5) << data << std::endl;
 }
