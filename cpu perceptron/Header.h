@@ -1,5 +1,19 @@
+/*void Random(double* Arr, double min, double max, int start, int end, unsigned long long MStime) {
+	srand(MStime  + time(0));
+	#include <random>
+	std::random_device rd;
+	std::mt19937 genr(rd());
+
+	for (int i = start; i < end; i++) {
+		Arr[i] = (double)(genr()) / rd.max() * (max - min) + min;
+		//Arr[i] = (double)(rand() / RAND_MAX * (max - min)) + min;
+		//Arr[i] = -0.5;
+		//std::cout << Arr[i] << std::endl;
+	}
+}*/
+
 void Random(double* Arr, double min, double max, int start, int end, unsigned long long MStime) {
-	srand(static_cast<unsigned long long>(MStime  + time(0)));
+	srand(static_cast<unsigned long long>(MStime + time(0)));
 	for (int i = start; i < end; i++) {
 		Arr[i] = (double)(rand()) / RAND_MAX * (max - min) + min;
 	}
@@ -56,7 +70,7 @@ void DisIterNull(double* out, double* outO, double* weight, double* delw, double
 	}
 
 	for (int i = 0; i < n[cout - 1]; i++) {
-		del[i] = (outO[i] - out[Onum + i]) * (1 - out[Onum  + i]) * out[Onum + i];
+		del[i] = (outO[i] - out[Onum + i]) * (1 - out[Onum + i]) * out[Onum + i];
 	}
 
 	Onum = 0;
@@ -140,4 +154,34 @@ void Out(cv::Mat image, double* out, int Onum) {
 	}
 	cv::imshow("Out", image);
 	cv::waitKey(1);
+}
+
+void ConfigPath(std::string &cpath) {
+	std::string path;
+	WCHAR buffer[MAX_PATH];
+	GetModuleFileNameW(NULL, buffer, sizeof(buffer) / sizeof(buffer[0]));
+	//printf(buffer);
+	bool t = false;
+	int i = 0;
+	int conv;
+
+	while (t == false) {
+		if (buffer[wcslen(buffer) - 1 - i] != '\\') {
+			buffer[wcslen(buffer) - 1 - i] = ' ';
+
+		}
+		else {
+			t = true;
+			conv = wcslen(buffer) - 1 - i;
+		}
+		i++;
+	}
+	for (int i = 0; i < conv; i++) {
+		path += buffer[i];
+		if (buffer[i] == '\\') {
+			path += '\\';
+
+		}
+	}
+	cpath = path;
 }
