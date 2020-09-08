@@ -1,6 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <iostream>
+#include <Windows.h>
+#include <fstream>
 #include <iomanip>
 #include <vector>
 #include <cmath>
@@ -18,7 +20,22 @@ int main() {
 	cv::Mat result(28, 28, CV_8UC1);
 	cv::Mat image(28, 28, CV_8UC3);
 	cv::Mat errors(100, 300, CV_8UC1);
-	int n[coat] = { 784, 100, 10 }, Onum = 0, Dnum = 0, Wnum = 0;
+	int n[coat] = { 784, 30, 10 }, Onum = 0, Dnum = 0, Wnum = 0;
+	std::string Path;
+	//std::string ConfigurationPath;
+	ConfigPath(Path);
+	//std::cout << Path;
+	//return 0;
+	//std::string ConfigurationPath(const std::wstring & Path);
+	/*std::ifstream Configuration(Path + "\\config.txt");
+	while(Configuration) {
+
+		std::string inf;
+		Configuration >> inf;
+		std::cout << inf << std::endl;
+
+	}
+	return 0;*/
 
 	for (int i = 0; i < coat; i++) {
 		Onum = Onum + n[i];
@@ -27,7 +44,7 @@ int main() {
 	for (int i = 0; i < (coat - 1); i++) {
 		Wnum = Wnum + n[i] * n[i + 1];
 	}
-	
+
 	double* out = new double[Onum];
 	double* outO = new double[n[coat - 1]];
 	double* del = new double[Onum - n[coat - 1]];
@@ -49,12 +66,13 @@ int main() {
 	std::cout << "Enter the number of epochs: ";
 	std::cin >> num;
 	clock_t d = clock();
-	
+
 	for (unsigned int epoch = 0; epoch < num; epoch++) {
+		error = 0;
 		for (int k = 0; k < n[coat - 1]; k++) {
-			image = cv::imread("D:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(epoch % 5000 + 1) + ").png");
+			image = cv::imread("F:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(epoch % 5000 + 1) + ").png");
 			if (!image.data) {
-				std::cout << "Error upload image " << "D:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(epoch % 5000 + 1) + ").png";
+				std::cout << "Error upload image " << "F:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(epoch % 5000 + 1) + ").png";
 				return -1;
 			}
 			Image(image, out, 0);
@@ -74,11 +92,11 @@ int main() {
 				Iter(out, weight, delw, del, n, i, coat);
 			}
 
-			error = 0;
+
 			for (int i = 0; i < n[coat - 1]; i++) {
-				error = error + (outO[i] - out[Onum - n[coat - 1] + i]) * (outO[i] - out[Onum - n[coat - 1] + i]);
+				error = error + (outO[i] - out[Onum - n[coat - 1] + i]) * (outO[i] - out[Onum - n[coat - 1] + i]) / n[coat - 1];
 			}
-			error = error / n[coat - 1];
+			//error = error / n[coat - 1];
 			outO[k] = 0.0;
 		}
 
@@ -104,13 +122,12 @@ int main() {
 			if (ltm->tm_hour < 10) {
 				hour = "0";
 			}
-			std::cout << "[" << hour << ltm->tm_hour << ":" << min << ltm->tm_min << ":" << sec << ltm->tm_sec << "][" << epoch << "][" << std::setprecision(5) << error << "] \r";
+			std::cout << "[" << hour << ltm->tm_hour << ":" << min << ltm->tm_min << ":" << sec << ltm->tm_sec << "][" << epoch << "][" << std::setprecision(5) << error / n[coat - 1] << "] \r";
 		}
 	}
 
-	std::cout << std::endl;
-	GlobalTime(clock() - d);
-	Testing(image, out, weight, coat, n);
+	std::cout << std::endl << std::endl;
+	Test(out, weight, coat, n);
 
 	std::cout << std::endl;
 	std::cout << "Past your path" << std::endl;
