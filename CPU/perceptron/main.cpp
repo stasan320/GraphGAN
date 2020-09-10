@@ -10,8 +10,8 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 
-#include "Header.h"
-#include "time.h"
+#include "function.h"
+#include "testing.h"
 
 
 const int coat = 3;
