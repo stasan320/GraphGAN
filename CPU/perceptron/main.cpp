@@ -12,7 +12,7 @@
 
 #include "FunctionNeural.h"
 #include "FunctionConsole.h"
-#include "time.h"
+#include "Testing.h"
 
 
 const int coat = 3;
