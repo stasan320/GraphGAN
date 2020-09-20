@@ -155,27 +155,3 @@ void Out(cv::Mat image, double* out, int Onum) {
 	cv::imshow("Out", image);
 	cv::waitKey(1);
 }
-
-void ConfigPath(std::string &path) {
-	WCHAR buffer[MAX_PATH];
-	GetModuleFileNameW(NULL, buffer, sizeof(buffer) / sizeof(buffer[0]));
-	bool t = false;
-	int conv;
-
-	for (int i = 0; i < MAX_PATH; i++) {
-		if (buffer[wcslen(buffer) - i - 1] != '\\') {
-			buffer[wcslen(buffer) - i - 1] = ' ';
-		}
-		else {
-			t = true;
-			conv = wcslen(buffer) - 1 - i;
-			for (int i = 0; i < conv; i++) {
-				path += buffer[i];
-				if (buffer[i] == '\\') {
-					path += '\\';
-				}
-			}
-			i = MAX_PATH;
-		}
-	}
-}
