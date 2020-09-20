@@ -10,8 +10,9 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 
-#include "function.h"
-#include "testing.h"
+#include "FunctionNeural.h"
+#include "FunctionConsole.h"
+#include "time.h"
 
 
 const int coat = 3;
@@ -21,21 +22,17 @@ int main() {
 	cv::Mat image(28, 28, CV_8UC3);
 	cv::Mat errors(100, 300, CV_8UC1);
 	int n[coat] = { 784, 30, 10 }, Onum = 0, Dnum = 0, Wnum = 0;
-	std::string Path;
+	std::string path, backup_weight;
 	//std::string ConfigurationPath;
-	ConfigPath(Path);
+	ConfigPath(path);
 	//std::cout << Path;
 	//return 0;
 	//std::string ConfigurationPath(const std::wstring & Path);
-	/*std::ifstream Configuration(Path + "\\config.txt");
-	while(Configuration) {
-
-		std::string inf;
-		Configuration >> inf;
-		std::cout << inf << std::endl;
-
-	}
-	return 0;*/
+	std::ifstream Configuration(path + "\\config.txt");
+	ProgramConst(backup_weight);
+	/*while(Configuration) {
+		Configuration >> backup_weight;
+	}*/
 
 	for (int i = 0; i < coat; i++) {
 		Onum = Onum + n[i];
@@ -52,7 +49,17 @@ int main() {
 	double* delw = new double[Wnum];
 	std::vector<double> ErrorOut;
 
-	Random(weight, -1.0, 1.0, 0, Wnum, clock());
+	if (backup_weight == "0") {
+		Random(weight, -1.0, 1.0, 0, Wnum, clock());
+	}
+	else {
+		std::ifstream Tweight(path + "\\weight.txt"/*, std::ios::binary | std::ios::out*/);
+		for (int i = 0; i < Wnum; i++) {
+			//out.write((char*)&k[i], sizeof k);
+			Tweight >> weight[i];
+		}
+	}
+
 	for (int i = 0; i < Wnum; i++) {
 		delw[i] = 0;
 	}
@@ -70,9 +77,9 @@ int main() {
 	for (unsigned int epoch = 0; epoch < num; epoch++) {
 		error = 0;
 		for (int k = 0; k < n[coat - 1]; k++) {
-			image = cv::imread("F:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(epoch % 5000 + 1) + ").png");
+			image = cv::imread("D:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(epoch % 500 + 1) + ").png");
 			if (!image.data) {
-				std::cout << "Error upload image " << "F:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(epoch % 5000 + 1) + ").png";
+				std::cout << "Error upload image " << "D:\\Foton\\ngnl_data\\training\\" + std::to_string(k) + "\\1 (" + std::to_string(epoch % 5000 + 1) + ").png";
 				return -1;
 			}
 			Image(image, out, 0);
@@ -126,15 +133,34 @@ int main() {
 		}
 	}
 
+	/*--------------------------Backup--------------------------*/
+
+	std::ofstream Tweight(path + "\\weight.txt"/*, std::ios::binary | std::ios::out*/);
+	for (int i = 0; i < Wnum; i++) {
+		Tweight << weight[i] << " ";
+	}
+	std::ofstream Configurations(path + "\\config.txt");
+	Configurations << "1";
+
+	/*--------------------------Backup--------------------------*/
+
 	std::cout << std::endl << std::endl;
-	Test(out, weight, coat, n);
+	//Test(out, weight, coat, n, d);
 
 	std::cout << std::endl;
 	std::cout << "Past your path" << std::endl;
 
 	for (;;) {
-		std::string name;
-		getline(std::cin, name);
+		std::string OrigName, name;
+		getline(std::cin, OrigName);
+		if (OrigName == "") {
+			continue;
+		}
+		//std::cin >> name;
+		for (int i = 1; i < OrigName.size() - 1; i++) {
+			name += OrigName[i];
+		}
+
 		cv::Mat image = cv::imread(name);
 		if (!image.data) {
 			std::cout << "Error upload image" << std::endl;
