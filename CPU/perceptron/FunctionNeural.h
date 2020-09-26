@@ -3,7 +3,6 @@
 	#include <random>
 	std::random_device rd;
 	std::mt19937 genr(rd());
-
 	for (int i = start; i < end; i++) {
 		Arr[i] = (double)(genr()) / rd.max() * (max - min) + min;
 		//Arr[i] = (double)(rand() / RAND_MAX * (max - min)) + min;
@@ -38,7 +37,7 @@ void SumFunc(double* out, double* weight, int* n, int num) {
 	}
 }
 
-void GenIterNull(double* out, double outO, double* weight, double* delw, double* del, int* n, int cout, int index, double dop) {
+void GenIterNull(double* out, double outO, double* weight, double* delw, double* del, int* n, int cout, int index, double dop, double step) {
 	int Onum = 0, Wnum = 0;
 
 	for (int i = 0; i < (cout - 1); i++) {
@@ -56,13 +55,13 @@ void GenIterNull(double* out, double outO, double* weight, double* delw, double*
 
 	for (int i = 0; i < n[cout - 2]; i++) {
 		double grad = out[Onum + i] * del[index];
-		delw[Wnum + i + index * n[cout - 2]] = 0.5 * grad + 0.03 * delw[Wnum + i + index * n[cout - 2]];
+		delw[Wnum + i + index * n[cout - 2]] = step * grad + 0.03 * delw[Wnum + i + index * n[cout - 2]];
 		weight[Wnum + i + index * n[cout - 2]] = weight[Wnum + i + index * n[cout - 2]] + delw[Wnum + i + index * n[cout - 2]];
 
 	}
 }
 
-void DisIterNull(double* out, double* outO, double* weight, double* delw, double* del, int* n, int cout) {
+void DisIterNull(double* out, double* outO, double* weight, double* delw, double* del, int* n, int cout, double step) {
 	int Onum = 0, Wnum = 0, Dnum = 0;
 
 	for (int i = 0; i < (cout - 1); i++) {
@@ -83,7 +82,7 @@ void DisIterNull(double* out, double* outO, double* weight, double* delw, double
 	for (int i = 0; i < n[cout - 2]; i++) {
 		for (int j = 0; j < n[cout - 1]; j++) {
 			double grad = out[Onum + i] * del[Dnum + j];
-			delw[Wnum + i + j * n[cout - 2]] = 0.35 * grad + 0.03 * delw[Wnum + i + j * n[cout - 2]];
+			delw[Wnum + i + j * n[cout - 2]] = step * grad + 0.03 * delw[Wnum + i + j * n[cout - 2]];
 			weight[Wnum + i + j * n[cout - 2]] = weight[Wnum + i + j * n[cout - 2]] + delw[Wnum + i + j * n[cout - 2]];
 			if (weight[Wnum + i + j * n[cout - 2]] != weight[Wnum + i + j * n[cout - 2]]) {
 				std::cout << "Null iter" << weight[Wnum + i + j * n[cout - 2]] << std::endl;
@@ -92,7 +91,7 @@ void DisIterNull(double* out, double* outO, double* weight, double* delw, double
 	}
 }
 
-void Iter(double* out, double* weight, double* delw, double* del, int* n, int num, int coat) {
+void Iter(double* out, double* weight, double* delw, double* del, int* n, int num, int coat, double step) {
 	int Onum = 0, Wnum = 0, Dnum = 0;
 	for (int i = 0; i < (coat - num - 2); i++) {
 		Onum = Onum + n[i];
@@ -120,7 +119,7 @@ void Iter(double* out, double* weight, double* delw, double* del, int* n, int nu
 	for (int i = 0; i < n[coat - num - 3]; i++) {
 		for (int j = 0; j < n[coat - num - 2]; j++) {
 			double grad = out[Onum + i] * del[Dnum + j];
-			delw[Wnum + i + j * n[coat - num - 3]] = 0.35 * grad + 0.03 * delw[Wnum + i + j * n[coat - num - 3]];
+			delw[Wnum + i + j * n[coat - num - 3]] = step * grad + 0.03 * delw[Wnum + i + j * n[coat - num - 3]];
 			weight[Wnum + i + j * n[coat - num - 3]] = weight[Wnum + i + j * n[coat - num - 3]] + delw[Wnum + i + j * n[coat - num - 3]];
 			if (weight[Wnum + i + j * n[coat - num - 3]] != weight[Wnum + i + j * n[coat - num - 3]]) {
 				std::cout << "iter" << del[Dnum + j] << std::endl;
