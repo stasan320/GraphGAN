@@ -1,24 +1,11 @@
-/*void Random(double* Arr, double min, double max, int start, int end, unsigned long long MStime) {
-	srand(MStime  + time(0));
-	#include <random>
-	std::random_device rd;
-	std::mt19937 genr(rd());
-	for (int i = start; i < end; i++) {
-		Arr[i] = (double)(genr()) / rd.max() * (max - min) + min;
-		//Arr[i] = (double)(rand() / RAND_MAX * (max - min)) + min;
-		//Arr[i] = -0.5;
-		//std::cout << Arr[i] << std::endl;
-	}
-}*/
-
-void Random(double* Arr, double min, double max, int start, int end, unsigned long long MStime) {
+void Random(float* Arr, float min, float max, int start, int end, clock_t MStime) {
 	srand(static_cast<unsigned long long>(MStime + time(0)));
 	for (int i = start; i < end; i++) {
-		Arr[i] = (double)(rand()) / RAND_MAX * (max - min) + min;
+		Arr[i] = (float)(rand()) / RAND_MAX * (max - min) + min;
 	}
 }
 
-void SumFunc(double* out, double* weight, int* n, int num) {
+void SumFunc(float* out, float* weight, int* n, int num) {
 	int Onum = 0, Wnum = 0;
 	for (int i = 0; i < num; i++) {
 		Onum = Onum + n[i];
@@ -26,7 +13,7 @@ void SumFunc(double* out, double* weight, int* n, int num) {
 	}
 
 	for (int i = 0; i < n[num + 1]; i++) {
-		double net = 0;
+		float net = 0;
 		for (int j = 0; j < n[num]; j++) {
 			net = net + weight[Wnum + j + i * n[num]] * out[Onum + j];
 			if (net != net) {
@@ -37,7 +24,7 @@ void SumFunc(double* out, double* weight, int* n, int num) {
 	}
 }
 
-void GenIterNull(double* out, double outO, double* weight, double* delw, double* del, int* n, int cout, int index, double dop, double step) {
+void GenIterNull(float* out, float outO, float* weight, float* delw, float* del, int* n, int cout, int index, float dop, float step) {
 	int Onum = 0, Wnum = 0;
 
 	for (int i = 0; i < (cout - 1); i++) {
@@ -54,14 +41,14 @@ void GenIterNull(double* out, double outO, double* weight, double* delw, double*
 	}
 
 	for (int i = 0; i < n[cout - 2]; i++) {
-		double grad = out[Onum + i] * del[index];
+		float grad = out[Onum + i] * del[index];
 		delw[Wnum + i + index * n[cout - 2]] = step * grad + 0.03 * delw[Wnum + i + index * n[cout - 2]];
 		weight[Wnum + i + index * n[cout - 2]] = weight[Wnum + i + index * n[cout - 2]] + delw[Wnum + i + index * n[cout - 2]];
 
 	}
 }
 
-void DisIterNull(double* out, double* outO, double* weight, double* delw, double* del, int* n, int cout, double step) {
+void DisIterNull(float* out, float* outO, float* weight, float* delw, float* del, int* n, int cout, float step) {
 	int Onum = 0, Wnum = 0, Dnum = 0;
 
 	for (int i = 0; i < (cout - 1); i++) {
@@ -81,7 +68,7 @@ void DisIterNull(double* out, double* outO, double* weight, double* delw, double
 
 	for (int i = 0; i < n[cout - 2]; i++) {
 		for (int j = 0; j < n[cout - 1]; j++) {
-			double grad = out[Onum + i] * del[Dnum + j];
+			float grad = out[Onum + i] * del[Dnum + j];
 			delw[Wnum + i + j * n[cout - 2]] = step * grad + 0.03 * delw[Wnum + i + j * n[cout - 2]];
 			weight[Wnum + i + j * n[cout - 2]] = weight[Wnum + i + j * n[cout - 2]] + delw[Wnum + i + j * n[cout - 2]];
 			if (weight[Wnum + i + j * n[cout - 2]] != weight[Wnum + i + j * n[cout - 2]]) {
@@ -91,7 +78,7 @@ void DisIterNull(double* out, double* outO, double* weight, double* delw, double
 	}
 }
 
-void Iter(double* out, double* weight, double* delw, double* del, int* n, int num, int coat, double step) {
+void Iter(float* out, float* weight, float* delw, float* del, int* n, int num, int coat, float step) {
 	int Onum = 0, Wnum = 0, Dnum = 0;
 	for (int i = 0; i < (coat - num - 2); i++) {
 		Onum = Onum + n[i];
@@ -103,7 +90,7 @@ void Iter(double* out, double* weight, double* delw, double* del, int* n, int nu
 	}
 
 	for (int i = 0; i < n[coat - num - 2]; i++) {
-		double per = 0;
+		float per = 0;
 		for (int j = 0; j < n[coat - num - 1]; j++) {
 			per = per + del[Dnum + j] * weight[Wnum + i + n[coat - num - 2] * j];
 		}
@@ -118,7 +105,7 @@ void Iter(double* out, double* weight, double* delw, double* del, int* n, int nu
 
 	for (int i = 0; i < n[coat - num - 3]; i++) {
 		for (int j = 0; j < n[coat - num - 2]; j++) {
-			double grad = out[Onum + i] * del[Dnum + j];
+			float grad = out[Onum + i] * del[Dnum + j];
 			delw[Wnum + i + j * n[coat - num - 3]] = step * grad + 0.03 * delw[Wnum + i + j * n[coat - num - 3]];
 			weight[Wnum + i + j * n[coat - num - 3]] = weight[Wnum + i + j * n[coat - num - 3]] + delw[Wnum + i + j * n[coat - num - 3]];
 			if (weight[Wnum + i + j * n[coat - num - 3]] != weight[Wnum + i + j * n[coat - num - 3]]) {
@@ -129,10 +116,10 @@ void Iter(double* out, double* weight, double* delw, double* del, int* n, int nu
 	}
 }
 
-void Image(cv::Mat image, double* out, int Onum) {
+void Image(cv::Mat image, float* out, int Onum) {
 	for (int i = 0; i < image.rows; i++) {
 		for (int j = 0; j < image.cols; j++) {
-			double per;
+			float per;
 			per = image.at<cv::Vec3b>(i, j)[0];
 			out[Onum + i * image.cols + j] = per / 255.0;
 		}
@@ -145,7 +132,7 @@ void Image(cv::Mat image, double* out, int Onum) {
 	}
 }
 
-void Out(cv::Mat image, double* out, int Onum) {
+void Out(cv::Mat image, float* out, int Onum) {
 	for (int i = 0; i < image.rows; i++) {
 		for (int j = 0; j < image.cols; j++) {
 			image.at<uchar>(i, j) = ceil(out[Onum + j + i * image.cols] * 255);
