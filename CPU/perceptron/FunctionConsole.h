@@ -74,3 +74,15 @@ void ProgramConst(std::string* backup) {
 	}
 	//exit(0);
 }
+
+void BackupWeight(std::string & path, std::string ProgramData[], int Wnum, float* weight) {
+	std::ofstream Tweight(path + "\\weight"/*, std::ios::binary | std::ios::out*/);
+	for (int i = 0; i < Wnum; i++) {
+		Tweight << weight[i] << " ";
+	}
+	if (ProgramData[0] == "0") {
+		std::ofstream Configurations(path + "\\config");
+		Configurations << "LastSave=1" << std::endl
+			<< "Step=" << ProgramData[1];
+	}
+}
