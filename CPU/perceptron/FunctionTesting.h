@@ -1,4 +1,4 @@
-void Testing(cv::Mat image, double* out, double* weight, int coat, int* n) {
+void Testing(cv::Mat image, float* out, float* weight, int coat, int* n) {
 	int Onum = 0, Wnum = 0, Dnum = 0;
 	for (int i = 0; i < coat; i++) {
 		Onum = Onum + n[i];
@@ -22,7 +22,7 @@ void Testing(cv::Mat image, double* out, double* weight, int coat, int* n) {
 				//std::cout << std::endl;
 			}
 
-			double data = 0;
+			float data = 0;
 			int number = 0;
 			for (int i = 0; i < n[coat - 1]; i++) {
 				if (data < out[Onum - n[coat - 1] + i]) {
@@ -35,16 +35,16 @@ void Testing(cv::Mat image, double* out, double* weight, int coat, int* n) {
 			}
 		}
 		std::cout << "                                                       >\r";
-		std::cout << "< Result for " << k << ": " << std::setprecision(5) << (double)DErrors[k] / (double)890 << std::endl;
+		std::cout << "< Result for " << k << ": " << std::setprecision(5) << (float)DErrors[k] / (float)890 * 100 << " %" << std::endl;
 
 	}
-	double data = 0;
+	float data = 0;
 	for (int i = 0; i < n[coat - 1]; i++) {
 		data = DErrors[i] + data;
 	}
-	data = data / (890 * (double)n[coat - 1]);
+	data = data / (890 * (float)n[coat - 1]) * 100;
 	std::cout << "                                                       >\r";
-	std::cout << "< Result for all: " << std::setprecision(5) << data << std::endl;
+	std::cout << "< Result for all: " << std::setprecision(5) << data << " %" << std::endl;
 	std::cout << "<------------------------------------------------------>" << std::endl;
 }
 
