@@ -54,25 +54,6 @@ struct DCGANGeneratorImpl:
 TORCH_MODULE(DCGANGenerator);
 
 int main() {
-    /*cv::Mat mat = cv::Mat(28, 28, CV_32FC1);
-    cv::Mat image(28, 28, CV_8UC1);
-       
-    image = cv::imread("D:\\Foton\\ngnl_data\\1.png");
-    for (int i = 0; i < 28; i++) {
-        for (int j = 0; j < 28; j++) {
-            mat.at<float>(i, j) = -1 + 2*(float)image.at<uchar>(i, j) / 255;
-        }
-    }
-
-    //cv::imshow("Out", image);
-    cv::waitKey(1);
-
-    torch::Tensor real_images = torch::from_blob(mat.data, { mat.rows, mat.cols});
-    //std::cout << real_images;
-
-    Out(real_images, 0);
-    cv::waitKey(1000);*/
-
     time_t t = 0;
     torch::manual_seed(1);
     torch::Device device(torch::kCPU);
@@ -115,13 +96,13 @@ int main() {
         int batch_index = 0;
         for (torch::data::Example<>& batch : *data_loader) {
             discriminator->zero_grad();
-            //torch::Tensor real_images = batch.data.to(device);
+            torch::Tensor real_images = batch.data.to(device);
 
             torch::Tensor tensor_image[Batch];
-
-
+            //torch::Tensor real_images;
+            srand(static_cast<unsigned long long>(time(NULL)));
             for (int k = 0; k < batch.data.size(0); k++) {
-                cv::Mat image = cv::imread("D:\\Foton\\ngnl_data\\training\\" + std::to_string(rand() % 10) + "\\1 (" + std::to_string(rand() % 5000) + ").png", CV_8UC1);
+                cv::Mat image = cv::imread("D:\\Foton\\ngnl_data\\training\\" + std::to_string(rand() % 10) + "\\1 (" + std::to_string(rand() % 5000 + 1) + ").png", CV_32FC1);
                 cv::Mat im(28, 28, CV_32FC1);
                 //cv::threshold(image, image, -1, 1, CV_32FC1);
                 for (int i = 0; i < 28; i++) {
@@ -136,8 +117,10 @@ int main() {
                 //cv::imshow("Ou5t", im);
 
 
-                torch::Tensor tensor = torch::from_blob(im.data, { 28, 28, 1 });
-                tensor_image[k] = tensor;
+                torch::Tensor tensor = torch::from_blob(image.data, { 28, 28, 1, Batch });
+                real_images = torch::cat((tensor, real_images), 0);
+                //tensor_image[k] = tensor;
+                //real_images = torch::from_blob(tensor.data_ptr(), {28, 28, 1, k } );
                /* cv::Mat mat = cv::Mat(28, 28, CV_32FC1, tensor.data_ptr());
                 cv::imshow("Out", mat);
                 cv::waitKey(1);*/
@@ -150,13 +133,10 @@ int main() {
                 //tensor_image = tensor_image.permute({ 2,0,1 });
             }
 
-            torch::Tensor real_images = torch::from_blob(tensor_image, { 28, 28, 1 , Batch});
-
-
             //tensor_image = torch::from_blob(inputs.data(), {28, 28, 1, Batch});
-            /*for (int i = 0; i < batch.data.size(0); i++) {
+           /* for (int i = 0; i < batch.data.size(0); i++) {
                 
-                cv::Mat mat = cv::Mat(28, 28, CV_32FC1, tensor_image[i].data_ptr());
+                cv::Mat mat = cv::Mat(28, 28, CV_32FC1, real_images[i].data_ptr());
                 std::cout << i;
                 cv::imshow("Out", mat);
                 cv::waitKey(100);
