@@ -115,24 +115,52 @@ int main() {
         int batch_index = 0;
         for (torch::data::Example<>& batch : *data_loader) {
             discriminator->zero_grad();
-            torch::Tensor real_images = batch.data.to(device);
+            //torch::Tensor real_images = batch.data.to(device);
 
-            torch::Tensor tensor_image;
+            torch::Tensor tensor_image[Batch];
 
-            for (int i = 0; i < batch.data.size(0); i++) {
-                cv::Mat img = cv::imread("D:\\Foton\\ngnl_data\\training\\" + std::to_string(rand() % 10) + "\\1 (" + std::to_string(rand() % 5000) + ").png", CV_32FC1);
+
+            for (int k = 0; k < batch.data.size(0); k++) {
+                cv::Mat image = cv::imread("D:\\Foton\\ngnl_data\\training\\" + std::to_string(rand() % 10) + "\\1 (" + std::to_string(rand() % 5000) + ").png", CV_8UC1);
+                cv::Mat im(28, 28, CV_32FC1);
+                //cv::threshold(image, image, -1, 1, CV_32FC1);
+                for (int i = 0; i < 28; i++) {
+                    for (int j = 0; j < 28; j++) {
+                        //std::cout << (int)image.at<uchar>(i, j) << std::endl;
+                        im.at<float>(i, j) = -1 + (float)2 * image.at<uchar>(i, j) / 255;
+
+                        //std::cout << (float)im.at<float>(i, j) << std::endl;
+                    }
+                }
+
+                //cv::imshow("Ou5t", im);
+
+
+                torch::Tensor tensor = torch::from_blob(im.data, { 28, 28, 1 });
+                tensor_image[k] = tensor;
+               /* cv::Mat mat = cv::Mat(28, 28, CV_32FC1, tensor.data_ptr());
+                cv::imshow("Out", mat);
+                cv::waitKey(1);*/
+
+                //cv::Mat mat = cv::Mat(28, 28, CV_32FC1, input_tensor.data_ptr());
+
                 //cv::imshow("Out", img);
                 //cv::waitKey(100);
-                tensor_image[i] = torch::from_blob(img.data, { img.rows, img.cols, 1 }, at::kByte);
+                //tensor_image[i] = torch::from_blob(img.data, { img.rows, img.cols, 1}, at::kFloat);
                 //tensor_image = tensor_image.permute({ 2,0,1 });
             }
 
-            for (int i = 0; i < batch.data.size(0); i++) {
+            torch::Tensor real_images = torch::from_blob(tensor_image, { 28, 28, 1 , Batch});
+
+
+            //tensor_image = torch::from_blob(inputs.data(), {28, 28, 1, Batch});
+            /*for (int i = 0; i < batch.data.size(0); i++) {
+                
                 cv::Mat mat = cv::Mat(28, 28, CV_32FC1, tensor_image[i].data_ptr());
                 std::cout << i;
                 cv::imshow("Out", mat);
                 cv::waitKey(100);
-            }
+            }*/
 
             //cv::Mat mat = cv::Mat(28, 28, CV_32FC1, real_images.data_ptr());
             //cv::imshow("Out", mat);
