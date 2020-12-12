@@ -117,8 +117,14 @@ int main() {
                 //cv::imshow("Ou5t", im);
 
 
-                torch::Tensor tensor = torch::from_blob(image.data, { 28, 28, 1, Batch });
-                real_images = torch::cat((tensor, real_images), 0);
+                std::vector<int64_t> sizes = { 1, 3, image.rows, image.cols };
+                at::TensorOptions options(at::ScalarType::Byte);
+                at::Tensor tensor_image = torch::from_blob(image.data, at::IntList(sizes), options);
+                //tensor_image = tensor_image.toType(at::kFloat);
+
+                //ten = torch::cat((ten, tensor), 0);
+
+                cv::Mat mat = cv::Mat(image.rows, image.cols, image.type(), tensor_image.data_ptr());
                 //tensor_image[k] = tensor;
                 //real_images = torch::from_blob(tensor.data_ptr(), {28, 28, 1, k } );
                /* cv::Mat mat = cv::Mat(28, 28, CV_32FC1, tensor.data_ptr());
