@@ -1,17 +1,23 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 
+
+#include <sstream>
+#include <fstream>
+#include <vector>
+#include <tuple>
+
 void Out(torch::Tensor tensor, int k) {
     cv::Mat mat = cv::Mat(28, 28, CV_32FC1, tensor.data_ptr());
 
     if (k % 10 == 0) {
-        cv::Mat image(28, 28, CV_8UC1);
-        for (int i = 0; i < 28; i++) {
-            for (int j = 0; j < 28; j++) {
+        cv::Mat image(mat.rows, mat.cols, CV_8UC1);
+        for (int i = 0; i < mat.rows; i++) {
+            for (int j = 0; j < mat.cols; j++) {
                 image.at<uchar>(i, j) = ceil(mat.at<float>(i, j) * 255);
             }
         }
-        cv::imwrite("D:\\Foton\\ngnl_data\\gen_image\\test\\" + std::to_string(time(NULL)) + ".png", image);
+        //cv::imwrite("D:\\Foton\\ngnl_data\\gen_image\\test\\" + std::to_string(time(NULL)) + ".png", image);
     }
     cv::imshow("Out", mat);
     cv::waitKey(1);
@@ -40,3 +46,31 @@ void ConsoleData(int epoch, int Epochs, int batch_index, int batches_per_epoch, 
 		<< "/" << Epochs << "][" << batch_index << "/" << batches_per_epoch << "] Dis_loss: "<< std::setprecision(4) << d_loss << " | Gen_loss: " << std::setprecision(4) << g_loss << "\r";
 
 }
+
+
+
+
+
+// Read in the csv file and return file locations and labels as vector of tuples.
+auto ReadCsv(std::string& location) -> std::vector<std::tuple<std::string /*file location*/, int64_t /*label*/>> {
+
+    std::fstream in(location, std::ios::in);
+    std::string line;
+    std::string name;
+    std::string label;
+    std::vector<std::tuple<std::string, int64_t>> csv;
+    int i = 0;
+    while (getline(in, line))
+    {
+        std::stringstream s(line);
+        getline(s, name, ',');
+        //getline(s, label, ',');
+        //std::cout << label;
+        csv.push_back(std::make_tuple(name, 0));
+
+        i++;
+    }
+    //std::cout << csv;
+    return csv;
+}
+
