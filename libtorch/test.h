@@ -7,22 +7,40 @@
 #include <vector>
 #include <tuple>
 
-void Out(torch::Tensor tensor, int k) {
-    cv::Mat mat = cv::Mat(28, 28, CV_32FC1, tensor.data_ptr());
 
-    if (k % 10 == 0) {
+
+#include <iostream>
+#include <torch/torch.h>
+#include <opencv2/opencv.hpp>
+#include <torch/script.h>
+
+
+
+
+void Out(torch::Tensor tensor, int k, int image_size) {
+    //image_size = 64;
+    cv::Mat mat = cv::Mat(image_size, image_size, CV_32FC1, tensor.data_ptr());
+    cv::Mat mats = cv::Mat(28, 28, CV_32FC1, tensor.data_ptr());
+
+    /*if (k % 10 == 0) {
         cv::Mat image(mat.rows, mat.cols, CV_8UC1);
         for (int i = 0; i < mat.rows; i++) {
             for (int j = 0; j < mat.cols; j++) {
                 image.at<uchar>(i, j) = ceil(mat.at<float>(i, j) * 255);
             }
         }
-        //cv::imwrite("D:\\Foton\\ngnl_data\\gen_image\\test\\" + std::to_string(time(NULL)) + ".png", image);
-    }
+
+        cv::Mat images(mats.rows, mats.cols, CV_8UC1);
+        for (int i = 0; i < mats.rows; i++) {
+            for (int j = 0; j < mats.cols; j++) {
+                images.at<uchar>(i, j) = ceil(mats.at<float>(i, j) * 255);
+            }
+        }
+        cv::imwrite("D:\\Foton\\ngnl_data\\gen_image\\test\\" + std::to_string(time(NULL)) + ".png", image);
+    }*/
     cv::imshow("Out", mat);
     cv::waitKey(1);
 }
-
 
 
 
