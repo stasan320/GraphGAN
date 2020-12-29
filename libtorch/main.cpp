@@ -25,6 +25,7 @@ const int Epochs = 30;
 const char* path = "D:\\Foton\\data\\d";
 const int Saving = 200;
 const int LData = 5000;
+const int image_size = 28;
 
 //const bool Loading = true;
 const bool Loading = false;
@@ -118,7 +119,7 @@ public:
         cv::waitKey(1);*/
         assert(!mat.empty());
 
-        cv::resize(mat, mat, cv::Size(options.image_size, options.image_size));
+        cv::resize(mat, mat, cv::Size(image_size, image_size));
         std::vector<cv::Mat> channels(3);
         cv::split(mat, channels);
 
@@ -132,12 +133,10 @@ public:
             torch::kUInt8);*/
         auto B = torch::from_blob(
             channels[0].ptr(),
-            { options.image_size, options.image_size },
+            { image_size, image_size },
             torch::kUInt8);
 
-        auto tdata = torch::cat({ B })
-            .view({ 1, options.image_size, options.image_size })
-            .to(torch::kFloat);
+        auto tdata = torch::cat({ B }).view({ 1, image_size, image_size }).to(torch::kFloat);
         auto tlabel = torch::from_blob(&data[index].second, { 1 }, torch::kLong);
         return { tdata, tlabel };
     }
@@ -211,7 +210,7 @@ int main() {
             torch::Tensor fake_labels = torch::zeros(batch.data.size(0), device);             //нулевые значения для генератора
             torch::Tensor fake_output = discriminator->forward(fake_images.detach());
 
-            Out(fake_images, batch_index);
+            Out(fake_images, batch_index, image_size);
             torch::Tensor d_loss_fake = torch::binary_cross_entropy(fake_output, fake_labels);
             d_loss_fake.backward();
 
