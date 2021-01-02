@@ -1,6 +1,5 @@
 CUDA GAN, not working
 
-CPU GAN, Universal GAN version not working 
 
 CPU perceptron (MNIST crutch - [1...n].png data) - 96.5%, 60 000 iteration
 
@@ -8,3 +7,8 @@ CPU perceptron (MNIST crutch - [1...n].png data) - 96.5%, 60 000 iteration
 
 
 CPU perceptron dont work in Linux (program use - WinAPI)
+
+
+
+CPU GAN, using PyTorch from C++ 1.7.1
+
