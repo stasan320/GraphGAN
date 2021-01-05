@@ -39,25 +39,22 @@ double kBeta2 = 0.999;
 
 
 void Out(torch::Tensor R, torch::Tensor G, torch::Tensor B, int image_size) {
+    int t = time(NULL);
 	//image_size = 64;
-	cv::Mat matR = cv::Mat(image_size, image_size, CV_32FC1, R.data_ptr());
-    cv::Mat matG = cv::Mat(image_size, image_size, CV_32FC1, G.data_ptr());
-    cv::Mat matB = cv::Mat(image_size, image_size, CV_32FC1, B.data_ptr());
+    for (int i = 0; i < Batch; i++) {
+        cv::Mat matR = cv::Mat(image_size, image_size, CV_32FC1, R[i].data_ptr());
+        cv::Mat matG = cv::Mat(image_size, image_size, CV_32FC1, G[i].data_ptr());
+        cv::Mat matB = cv::Mat(image_size, image_size, CV_32FC1, B[i].data_ptr());
 
-	cv::Mat out;
-	std::vector<cv::Mat> channels = {matR, matG, matB};
-	cv::merge(channels, out);
+        cv::Mat out;
+        std::vector<cv::Mat> channels = { matR, matG, matB };
+        cv::merge(channels, out);
 
-
-	//cv::imwrite("D:\\Foton\\ngnl_data\\gen_image\\test\\" + std::to_string(time(NULL)) + ".png", mat);
-	cv::imshow("Out", out);
-	cv::waitKey(1);
-    /*cv::imshow("R", matR);
-    cv::waitKey(1);
-    cv::imshow("G", matG);
-    cv::waitKey(1);
-    cv::imshow("B", matB);
-    cv::waitKey(1000000);*/
+        out.convertTo(out, CV_8UC3, 255);
+        cv::imwrite("D:\\Foton\\ngnl_data\\gen_image\\anime\\" + std::to_string(t) + "_" + std::to_string(i) + ".png", out);
+        cv::imshow("Out", out);
+        cv::waitKey(1);
+    }
 }
 
 
@@ -90,9 +87,14 @@ auto ReadCsv(std::string& location) {
     std::string name;
     std::string label;
     std::vector<std::tuple<std::string, int64_t>> csv;
-
-    for (int i = 0; i < 64; i++) {
-        name = "D:\\Foton\\ngnl_data\\data\\data\\cropped\\1 (" + std::to_string(i % 5000 + 1) + ").jpg";
+    int l = 512;
+    for (int i = 0; i < l; i++) {
+        name = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(i % 60000) + ".png";
+        cv::Mat mat = cv::imread(name);
+        if (mat.cols < 40) {
+            l++;
+            continue;
+        }
         csv.push_back(std::make_tuple(name, 1));
     }
 
@@ -100,16 +102,21 @@ auto ReadCsv(std::string& location) {
 };
 
 struct FaceDatasetR : torch::data::Dataset<FaceDatasetR> {
-    int k = 0;
     std::vector<std::tuple<std::string, int64_t>> csv_;
+    int k = 0;
 
     FaceDatasetR(std::string& file_names_csv) : csv_(ReadCsv(file_names_csv)) {
 
     };
 
     torch::data::Example<> get(size_t index) override {
-        std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(k) + ".png";
+
+        //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(k) + ".png";
+        std::string file_location = std::get<0>(csv_[k]);
         k++;
+        if (k > 500) {
+            k = 0;
+        }
         int64_t label = 1;
         cv::Mat img = cv::imread(file_location);
 
@@ -152,8 +159,12 @@ struct FaceDatasetR : torch::data::Dataset<FaceDatasetR> {
 
         torch::data::Example<> get(size_t index) override {
             //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(index % 60000) + ".png";
-            std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(k) + ".png";
+        //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(k) + ".png";
+            std::string file_location = std::get<0>(csv_[k]);
             k++;
+            if (k > 500) {
+                k = 0;
+            }
             int64_t label = 1;
             cv::Mat img = cv::imread(file_location);
 
@@ -196,8 +207,12 @@ struct FaceDatasetR : torch::data::Dataset<FaceDatasetR> {
         torch::data::Example<> get(size_t index) override {
 
             //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(index % 60000) + ".png";
-            std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(k) + ".png";
+        //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(k) + ".png";
+            std::string file_location = std::get<0>(csv_[k]);
             k++;
+            if (k > 500) {
+                k = 0;
+            }
             int64_t label = 1;
             cv::Mat img = cv::imread(file_location);
 
