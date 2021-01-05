@@ -93,14 +93,13 @@ torch::Tensor Train(int batch_index, torch::Device device, torch::optim::Adam& d
     g_loss.backward();
     generator_optimizer.step();
 
-
     return fake_images;
 }
 
 
 
 int main() {
-    manual_seed(1);
+    manual_seed(time(NULL));
 
     torch::Device device(torch::kCPU);
     if (torch::cuda::is_available()) {
@@ -178,7 +177,7 @@ int main() {
     optim::Adam generator_optimizerB(generatorB->parameters(), optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
     optim::Adam discriminator_optimizerB(discriminatorB->parameters(), optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
 
-    if (false) {
+    if (1) {
         torch::load(generatorR, "D:\\Foton\\xz\\dat\\generatorR-checkpoint.pt");
         torch::load(generator_optimizerR, "D:\\Foton\\xz\\dat\\generator-optimizerR-checkpoint.pt");
         torch::load(discriminatorR, "D:\\Foton\\xz\\dat\\discriminatorR-checkpoint.pt");
