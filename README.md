@@ -1,4 +1,4 @@
-CUDA GAN, not working
+CUDA GAN, don't working
 
 CPU GAN, using PyTorch 1.7.1 and OpenCV 3.4.12 from C++
 
