@@ -1,34 +1,24 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 
-
 #include <sstream>
 #include <fstream>
 #include <vector>
 #include <tuple>
-
-
-
 #include <iostream>
+
 #include <torch/torch.h>
 #include <ATen/ATen.h>
-
 #include <torch/script.h>
 
 
-#include "constant.h"
 
-using namespace torch;
-
-
-int ch = 1;
-int64_t ImageSize = 64;
+const int ch = 1;
+const int image_size = 64;
 int64_t kLatentDim = 100;
-int64_t Batch = 64;
+const int Batch = 64;
 int64_t kNumOfWorkers = 16;
-bool kEnforceOrder = false;
 int64_t kNumberOfEpochs = 30000;
-std::string kCsvFile = "../file_names.csv";
 int64_t kCheckpointEvery = 20;
 int64_t kNumberOfSamplesPerCheckpoint = 64;
 int64_t kLogInterval = 10;
@@ -81,17 +71,16 @@ void ConsoleData(int epoch, int Epochs, int batch_index, int batches_per_epoch, 
 }
 
 
-auto ReadCsv(std::string& location) {
-    std::fstream in(location, std::ios::in);
-    std::string line;
+auto ReadCsv() {
     std::string name;
     std::string label;
     std::vector<std::tuple<std::string, int64_t>> csv;
-    int l = 512;
+    int l = 64;
     for (int i = 0; i < l; i++) {
         name = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(i % 60000) + ".png";
+        //name = "D:\\DeepFaceLab\\DeepFaceLab_NVIDIA\\workspace\\data_src\\aligned\\0" + std::to_string(i) + ".jpg";
         cv::Mat mat = cv::imread(name);
-        if (mat.cols < 40) {
+        if (!mat.data) {
             l++;
             continue;
         }
@@ -105,7 +94,7 @@ struct FaceDatasetR : torch::data::Dataset<FaceDatasetR> {
     std::vector<std::tuple<std::string, int64_t>> csv_;
     int k = 0;
 
-    FaceDatasetR(std::string& file_names_csv) : csv_(ReadCsv(file_names_csv)) {
+    FaceDatasetR() : csv_(ReadCsv()) {
 
     };
 
@@ -120,13 +109,13 @@ struct FaceDatasetR : torch::data::Dataset<FaceDatasetR> {
         int64_t label = 1;
         cv::Mat img = cv::imread(file_location);
 
-        cv::resize(img, img, cv::Size(ImageSize, ImageSize));
+        cv::resize(img, img, cv::Size(image_size, image_size));
 
 
         std::vector<cv::Mat> channels(3);
         cv::split(img, channels);
 
-        auto R = torch::from_blob(channels[0].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
+        auto R = torch::from_blob(channels[0].ptr(), { image_size, image_size }, torch::kUInt8);
         //auto G = torch::from_blob(channels[1].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
         //auto B = torch::from_blob(channels[2].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
 
@@ -134,7 +123,7 @@ struct FaceDatasetR : torch::data::Dataset<FaceDatasetR> {
         /*cv::imshow("h", img);
         cv::waitKey(1);*/
 
-        auto tdata = torch::cat({ R }).view({ ch, ImageSize, ImageSize }).to(torch::kFloat);
+        auto tdata = torch::cat({ R }).view({ ch, image_size, image_size }).to(torch::kFloat);
         tdata.permute({ 2, 0, 1 });
         torch::Tensor label_tensor = torch::full({ 1 }, label);
 
@@ -149,96 +138,96 @@ struct FaceDatasetR : torch::data::Dataset<FaceDatasetR> {
 
 
 
-    struct FaceDatasetG : torch::data::Dataset<FaceDatasetG> {
-        int k = 0;
-        std::vector<std::tuple<std::string, int64_t>> csv_;
+struct FaceDatasetG : torch::data::Dataset<FaceDatasetG> {
+    int k = 0;
+    std::vector<std::tuple<std::string, int64_t>> csv_;
 
-        FaceDatasetG(std::string& file_names_csv) : csv_(ReadCsv(file_names_csv)) {
+    FaceDatasetG() : csv_(ReadCsv()) {
 
-        };
-
-        torch::data::Example<> get(size_t index) override {
-            //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(index % 60000) + ".png";
-        //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(k) + ".png";
-            std::string file_location = std::get<0>(csv_[k]);
-            k++;
-            if (k > 500) {
-                k = 0;
-            }
-            int64_t label = 1;
-            cv::Mat img = cv::imread(file_location);
-
-            cv::resize(img, img, cv::Size(ImageSize, ImageSize));
-
-
-            std::vector<cv::Mat> channels(3);
-            cv::split(img, channels);
-
-            //auto R = torch::from_blob(channels[0].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
-            auto G = torch::from_blob(channels[1].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
-            //auto B = torch::from_blob(channels[2].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
-
-
-            /*cv::imshow("h", img);
-            cv::waitKey(1);*/
-
-            auto tdata = torch::cat({ G }).view({ ch, ImageSize, ImageSize }).to(torch::kFloat);
-            tdata.permute({ 2, 0, 1 });
-            torch::Tensor label_tensor = torch::full({ 1 }, label);
-
-            return { tdata, label_tensor };
-        };
-
-        torch::optional<size_t> size() const override {
-
-            return csv_.size();
-        };
     };
 
+    torch::data::Example<> get(size_t index) override {
+        //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(index % 60000) + ".png";
+    //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(k) + ".png";
+        std::string file_location = std::get<0>(csv_[k]);
+        k++;
+        if (k > 500) {
+            k = 0;
+        }
+        int64_t label = 1;
+        cv::Mat img = cv::imread(file_location);
 
-    struct FaceDatasetB : torch::data::Dataset<FaceDatasetB> {
-        int k = 0;
-        std::vector<std::tuple<std::string, int64_t>> csv_;
-
-        FaceDatasetB(std::string& file_names_csv) : csv_(ReadCsv(file_names_csv)) {
-
-        };
-
-        torch::data::Example<> get(size_t index) override {
-
-            //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(index % 60000) + ".png";
-        //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(k) + ".png";
-            std::string file_location = std::get<0>(csv_[k]);
-            k++;
-            if (k > 500) {
-                k = 0;
-            }
-            int64_t label = 1;
-            cv::Mat img = cv::imread(file_location);
-
-            cv::resize(img, img, cv::Size(ImageSize, ImageSize));
+        cv::resize(img, img, cv::Size(image_size, image_size));
 
 
-            std::vector<cv::Mat> channels(3);
-            cv::split(img, channels);
+        std::vector<cv::Mat> channels(3);
+        cv::split(img, channels);
 
-            //auto R = torch::from_blob(channels[0].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
-            //auto G = torch::from_blob(channels[1].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
-            auto B = torch::from_blob(channels[2].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
+        //auto R = torch::from_blob(channels[0].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
+        auto G = torch::from_blob(channels[1].ptr(), { image_size, image_size }, torch::kUInt8);
+        //auto B = torch::from_blob(channels[2].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
 
 
-            /*cv::imshow("h", img);
-            cv::waitKey(1);*/
+        /*cv::imshow("h", img);
+        cv::waitKey(1);*/
 
-            auto tdata = torch::cat({ B }).view({ ch, ImageSize, ImageSize }).to(torch::kFloat);
-            tdata.permute({ 2, 0, 1 });
-            torch::Tensor label_tensor = torch::full({ 1 }, label);
+        auto tdata = torch::cat({ G }).view({ ch, image_size, image_size }).to(torch::kFloat);
+        tdata.permute({ 2, 0, 1 });
+        torch::Tensor label_tensor = torch::full({ 1 }, label);
 
-            return { tdata, label_tensor };
-        };
-
-        torch::optional<size_t> size() const override {
-
-            return csv_.size();
-        };
+        return { tdata, label_tensor };
     };
+
+    torch::optional<size_t> size() const override {
+
+        return csv_.size();
+    };
+};
+
+
+struct FaceDatasetB : torch::data::Dataset<FaceDatasetB> {
+    int k = 0;
+    std::vector<std::tuple<std::string, int64_t>> csv_;
+
+    FaceDatasetB() : csv_(ReadCsv()) {
+
+    };
+
+    torch::data::Example<> get(size_t index) override {
+
+        //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(index % 60000) + ".png";
+    //std::string file_location = "D:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string(k) + ".png";
+        std::string file_location = std::get<0>(csv_[k]);
+        k++;
+        if (k > 500) {
+            k = 0;
+        }
+        int64_t label = 1;
+        cv::Mat img = cv::imread(file_location);
+
+        cv::resize(img, img, cv::Size(image_size, image_size));
+
+
+        std::vector<cv::Mat> channels(3);
+        cv::split(img, channels);
+
+        //auto R = torch::from_blob(channels[0].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
+        //auto G = torch::from_blob(channels[1].ptr(), { ImageSize, ImageSize }, torch::kUInt8);
+        auto B = torch::from_blob(channels[2].ptr(), { image_size, image_size }, torch::kUInt8);
+
+
+        /*cv::imshow("h", img);
+        cv::waitKey(1);*/
+
+        auto tdata = torch::cat({ B }).view({ ch, image_size, image_size }).to(torch::kFloat);
+        tdata.permute({ 2, 0, 1 });
+        torch::Tensor label_tensor = torch::full({ 1 }, label);
+
+        return { tdata, label_tensor };
+    };
+
+    torch::optional<size_t> size() const override {
+
+        return csv_.size();
+    };
+};
