@@ -1,4 +1,17 @@
 #define _CRT_SECURE_NO_WARNINGS
+#pragma comment(lib, "torch_cpu.lib")
+#pragma comment(lib, "c10.lib")
+#pragma comment(lib, "c10d.lib")
+#pragma comment(lib, "cpuinfo.lib")
+#pragma comment(lib, "caffe2_nvrtc.lib")
+#pragma comment(lib, "torch_cuda.lib")
+#pragma comment(lib, "torch_cpu.lib")
+#pragma comment(lib, "torch.lib")
+#pragma comment(lib, "c10_cuda.lib")
+#pragma comment(lib, "asmjit.lib")
+#pragma comment(lib, "opencv_world3412.lib")
+#pragma comment(lib, "opencv_world3412d.lib")
+
 
 #include <torch/torch.h>
 #include <ATen/ATen.h>
@@ -16,26 +29,24 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 
-using namespace torch;
 
 
 
-
-struct DCGANGeneratorImpl : nn::Module {
+struct DCGANGeneratorImpl : torch::nn::Module {
     DCGANGeneratorImpl(int kLatentDim)
-        : conv1(nn::ConvTranspose2dOptions(kLatentDim, ImageSize*8, 4).bias(false)),
-        batch_norm1(ImageSize*8),
+        : conv1(torch::nn::ConvTranspose2dOptions(kLatentDim, image_size*8, 4).bias(false)),
+        batch_norm1(image_size*8),
 
-        conv2(nn::ConvTranspose2dOptions(ImageSize*8, ImageSize*4, 4).stride(2).padding(1).bias(false)),
-        batch_norm2(ImageSize*4),
+        conv2(torch::nn::ConvTranspose2dOptions(image_size*8, image_size*4, 4).stride(2).padding(1).bias(false)),
+        batch_norm2(image_size*4),
 
-        conv3(nn::ConvTranspose2dOptions(ImageSize*4, ImageSize*2, 4).stride(2).padding(1).bias(false)),
-        batch_norm3(ImageSize*2),
+        conv3(torch::nn::ConvTranspose2dOptions(image_size*4, image_size*2, 4).stride(2).padding(1).bias(false)),
+        batch_norm3(image_size*2),
 
-        conv4(nn::ConvTranspose2dOptions(ImageSize*2, ImageSize, 4).stride(2).padding(1).bias(false)),
-        batch_norm4(ImageSize),
+        conv4(torch::nn::ConvTranspose2dOptions(image_size*2, image_size, 4).stride(2).padding(1).bias(false)),
+        batch_norm4(image_size),
 
-        conv5(nn::ConvTranspose2dOptions(ImageSize, ch, 4).stride(2).padding(1).bias(false))
+        conv5(torch::nn::ConvTranspose2dOptions(image_size, ch, 4).stride(2).padding(1).bias(false))
     {
         // register_module() is needed if we want to use the parameters() method later on
         register_module("conv1", conv1);
@@ -49,26 +60,34 @@ struct DCGANGeneratorImpl : nn::Module {
         register_module("batch_norm4", batch_norm4);
     }
 
-    Tensor forwards(Tensor x) {
-        x = relu(batch_norm1(conv1(x)));
-        x = relu(batch_norm2(conv2(x)));
-        x = relu(batch_norm3(conv3(x)));
-        x = relu(batch_norm4(conv4(x)));
-        x = tanh(conv5(x));
+    torch::Tensor forwards(torch::Tensor x) {
+        x = torch::relu(batch_norm1(conv1(x)));
+        x = torch::relu(batch_norm2(conv2(x)));
+        x = torch::relu(batch_norm3(conv3(x)));
+        x = torch::relu(batch_norm4(conv4(x)));
+        x = torch::tanh(conv5(x));
         return x;
     }
 
-    nn::ConvTranspose2d conv1, conv2, conv3, conv4, conv5;
-    nn::BatchNorm2d batch_norm1, batch_norm2, batch_norm3, batch_norm4;
+    torch::nn::ConvTranspose2d conv1, conv2, conv3, conv4, conv5;
+    torch::nn::BatchNorm2d batch_norm1, batch_norm2, batch_norm3, batch_norm4;
 };
 
 TORCH_MODULE(DCGANGenerator);
 
 
-torch::Tensor Train(int batch_index, torch::Device device, torch::optim::Adam& discriminator_optimizer, torch::optim::Adam& generator_optimizer, torch::data::datasets::detail::optional_if_t<false, torch::data::Example<>> batch, torch::nn::Sequential discriminator, struct DCGANGenerator generator, torch::Tensor noise) {
+torch::Tensor Train(int batch_index, 
+                    torch::Device device, 
+                    torch::optim::Adam& discriminator_optimizer, 
+                    torch::optim::Adam& generator_optimizer, 
+                    torch::data::datasets::detail::optional_if_t<false, 
+                    torch::data::Example<>> batch, 
+                    torch::nn::Sequential discriminator, 
+                    struct DCGANGenerator generator, 
+                    torch::Tensor noise) {
     discriminator->zero_grad();
     torch::Tensor real_images = batch.data.to(device);
-    torch::Tensor real_labels = torch::empty(batch.data.size(0), device).uniform_(0.8, 1.0);
+    torch::Tensor real_labels = torch::empty(Batch, device).uniform_(0.8, 1.0);
     torch::Tensor real_output = discriminator->forward(real_images);
     torch::Tensor d_loss_real = binary_cross_entropy(real_output, real_labels);
     d_loss_real.backward();
@@ -77,7 +96,7 @@ torch::Tensor Train(int batch_index, torch::Device device, torch::optim::Adam& d
 
     torch::Tensor fake_images = generator->forwards(noise);
     //Out(fake_images, 1, ImageSize);
-    torch::Tensor fake_labels = torch::zeros(batch.data.size(0), device);
+    torch::Tensor fake_labels = torch::zeros(Batch, device);
     torch::Tensor fake_output = discriminator->forward(fake_images.detach());
     torch::Tensor d_loss_fake = torch::binary_cross_entropy(fake_output, fake_labels);
     d_loss_fake.backward();
@@ -99,7 +118,7 @@ torch::Tensor Train(int batch_index, torch::Device device, torch::optim::Adam& d
 
 
 int main() {
-    manual_seed(time(NULL));
+    torch::manual_seed(time(NULL));
 
     torch::Device device(torch::kCPU);
     if (torch::cuda::is_available()) {
@@ -114,70 +133,69 @@ int main() {
     generatorG->to(device);
     generatorB->to(device);
 
-    nn::Sequential discriminatorR(
-        nn::Conv2d(nn::Conv2dOptions(ch, ImageSize, 4).stride(2).padding(1).bias(false)),
-        nn::LeakyReLU(nn::LeakyReLUOptions().negative_slope(0.2)),
-        nn::Conv2d(nn::Conv2dOptions(ImageSize, ImageSize * 2, 4).stride(2).padding(1).bias(false)),
-        nn::BatchNorm2d(ImageSize * 2),
-        nn::LeakyReLU(nn::LeakyReLUOptions().negative_slope(0.2)),
-        nn::Conv2d(nn::Conv2dOptions(ImageSize * 2, ImageSize * 4, 4).stride(2).padding(1).bias(false)),
-        nn::BatchNorm2d(ImageSize * 4),
-        nn::LeakyReLU(nn::LeakyReLUOptions().negative_slope(0.2)),
-        nn::Conv2d(nn::Conv2dOptions(ImageSize * 4, ImageSize * 8, 4).stride(2).padding(1).bias(false)),
-        nn::BatchNorm2d(ImageSize * 8),
-        nn::LeakyReLU(nn::LeakyReLUOptions().negative_slope(0.2)),
-        nn::Conv2d(nn::Conv2dOptions(ImageSize * 8, 1, 4).stride(1).padding(0).bias(false)),
-        nn::Sigmoid());
-    nn::Sequential discriminatorG(
-        nn::Conv2d(nn::Conv2dOptions(ch, ImageSize, 4).stride(2).padding(1).bias(false)),
-        nn::LeakyReLU(nn::LeakyReLUOptions().negative_slope(0.2)),
-        nn::Conv2d(nn::Conv2dOptions(ImageSize, ImageSize * 2, 4).stride(2).padding(1).bias(false)),
-        nn::BatchNorm2d(ImageSize * 2),
-        nn::LeakyReLU(nn::LeakyReLUOptions().negative_slope(0.2)),
-        nn::Conv2d(nn::Conv2dOptions(ImageSize * 2, ImageSize * 4, 4).stride(2).padding(1).bias(false)),
-        nn::BatchNorm2d(ImageSize * 4),
-        nn::LeakyReLU(nn::LeakyReLUOptions().negative_slope(0.2)),
-        nn::Conv2d(nn::Conv2dOptions(ImageSize * 4, ImageSize * 8, 4).stride(2).padding(1).bias(false)),
-        nn::BatchNorm2d(ImageSize * 8),
-        nn::LeakyReLU(nn::LeakyReLUOptions().negative_slope(0.2)),
-        nn::Conv2d(nn::Conv2dOptions(ImageSize * 8, 1, 4).stride(1).padding(0).bias(false)),
-        nn::Sigmoid());
-    nn::Sequential discriminatorB(
-        nn::Conv2d(nn::Conv2dOptions(ch, ImageSize, 4).stride(2).padding(1).bias(false)),
-        nn::LeakyReLU(nn::LeakyReLUOptions().negative_slope(0.2)),
-        nn::Conv2d(nn::Conv2dOptions(ImageSize, ImageSize * 2, 4).stride(2).padding(1).bias(false)),
-        nn::BatchNorm2d(ImageSize * 2),
-        nn::LeakyReLU(nn::LeakyReLUOptions().negative_slope(0.2)),
-        nn::Conv2d(nn::Conv2dOptions(ImageSize * 2, ImageSize * 4, 4).stride(2).padding(1).bias(false)),
-        nn::BatchNorm2d(ImageSize * 4),
-        nn::LeakyReLU(nn::LeakyReLUOptions().negative_slope(0.2)),
-        nn::Conv2d(nn::Conv2dOptions(ImageSize * 4, ImageSize * 8, 4).stride(2).padding(1).bias(false)),
-        nn::BatchNorm2d(ImageSize * 8),
-        nn::LeakyReLU(nn::LeakyReLUOptions().negative_slope(0.2)),
-        nn::Conv2d(nn::Conv2dOptions(ImageSize * 8, 1, 4).stride(1).padding(0).bias(false)),
-        nn::Sigmoid());
+    torch::nn::Sequential discriminatorR(
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(ch, image_size, 4).stride(2).padding(1).bias(false)),
+        torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().negative_slope(0.2)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(image_size, image_size * 2, 4).stride(2).padding(1).bias(false)),
+        torch::nn::BatchNorm2d(image_size * 2),
+        torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().negative_slope(0.2)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(image_size * 2, image_size * 4, 4).stride(2).padding(1).bias(false)),
+        torch::nn::BatchNorm2d(image_size * 4),
+        torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().negative_slope(0.2)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(image_size * 4, image_size * 8, 4).stride(2).padding(1).bias(false)),
+        torch::nn::BatchNorm2d(image_size * 8),
+        torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().negative_slope(0.2)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(image_size * 8, 1, 4).stride(1).padding(0).bias(false)),
+        torch::nn::Sigmoid());
+    torch::nn::Sequential discriminatorG(
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(ch, image_size, 4).stride(2).padding(1).bias(false)),
+        torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().negative_slope(0.2)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(image_size, image_size * 2, 4).stride(2).padding(1).bias(false)),
+        torch::nn::BatchNorm2d(image_size * 2),
+        torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().negative_slope(0.2)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(image_size * 2, image_size * 4, 4).stride(2).padding(1).bias(false)),
+        torch::nn::BatchNorm2d(image_size * 4),
+        torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().negative_slope(0.2)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(image_size * 4, image_size * 8, 4).stride(2).padding(1).bias(false)),
+        torch::nn::BatchNorm2d(image_size * 8),
+        torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().negative_slope(0.2)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(image_size * 8, 1, 4).stride(1).padding(0).bias(false)),
+        torch::nn::Sigmoid());
+    torch::nn::Sequential discriminatorB(
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(ch, image_size, 4).stride(2).padding(1).bias(false)),
+        torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().negative_slope(0.2)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(image_size, image_size * 2, 4).stride(2).padding(1).bias(false)),
+        torch::nn::BatchNorm2d(image_size * 2),
+        torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().negative_slope(0.2)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(image_size * 2, image_size * 4, 4).stride(2).padding(1).bias(false)),
+        torch::nn::BatchNorm2d(image_size * 4),
+        torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().negative_slope(0.2)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(image_size * 4, image_size * 8, 4).stride(2).padding(1).bias(false)),
+        torch::nn::BatchNorm2d(image_size * 8),
+        torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().negative_slope(0.2)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(image_size * 8, 1, 4).stride(1).padding(0).bias(false)),
+        torch::nn::Sigmoid());
     discriminatorR->to(device);
     discriminatorG->to(device);
     discriminatorB->to(device);
 
 
 
-    std::string file_names_csv = kCsvFile;
-    auto datasetR = FaceDatasetR(file_names_csv).map(data::transforms::Normalize<>(0.5, 0.5)).map(data::transforms::Stack<>());
-    auto data_loaderR = data::make_data_loader<data::samplers::RandomSampler>(datasetR, data::DataLoaderOptions().workers(kNumOfWorkers).batch_size(Batch).enforce_ordering(kEnforceOrder));
-    auto datasetG = FaceDatasetG(file_names_csv).map(data::transforms::Normalize<>(0.5, 0.5)).map(data::transforms::Stack<>());
-    auto data_loaderG = data::make_data_loader<data::samplers::RandomSampler>(datasetG, data::DataLoaderOptions().workers(kNumOfWorkers).batch_size(Batch).enforce_ordering(kEnforceOrder));
-    auto datasetB = FaceDatasetB(file_names_csv).map(data::transforms::Normalize<>(0.5, 0.5)).map(data::transforms::Stack<>());                     
-    auto data_loaderB = data::make_data_loader<data::samplers::RandomSampler>(datasetB, data::DataLoaderOptions().workers(kNumOfWorkers).batch_size(Batch).enforce_ordering(kEnforceOrder));
+    auto datasetR = FaceDatasetR().map(torch::data::transforms::Normalize<>(0.5, 0.5)).map(torch::data::transforms::Stack<>());
+    auto data_loaderR = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(datasetR, torch::data::DataLoaderOptions().workers(kNumOfWorkers).batch_size(Batch).enforce_ordering(false));
+    auto datasetG = FaceDatasetG().map(torch::data::transforms::Normalize<>(0.5, 0.5)).map(torch::data::transforms::Stack<>());
+    auto data_loaderG = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(datasetG, torch::data::DataLoaderOptions().workers(kNumOfWorkers).batch_size(Batch).enforce_ordering(false));
+    auto datasetB = FaceDatasetB().map(torch::data::transforms::Normalize<>(0.5, 0.5)).map(torch::data::transforms::Stack<>());
+    auto data_loaderB = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(datasetB, torch::data::DataLoaderOptions().workers(kNumOfWorkers).batch_size(Batch).enforce_ordering(false));
 
-    optim::Adam generator_optimizerR(generatorR->parameters(), optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
-    optim::Adam discriminator_optimizerR(discriminatorR->parameters(), optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
-    optim::Adam generator_optimizerG(generatorG->parameters(), optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
-    optim::Adam discriminator_optimizerG(discriminatorG->parameters(), optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
-    optim::Adam generator_optimizerB(generatorB->parameters(), optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
-    optim::Adam discriminator_optimizerB(discriminatorB->parameters(), optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
+    torch::optim::Adam generator_optimizerR(generatorR->parameters(), torch::optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
+    torch::optim::Adam discriminator_optimizerR(discriminatorR->parameters(), torch::optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
+    torch::optim::Adam generator_optimizerG(generatorG->parameters(), torch::optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
+    torch::optim::Adam discriminator_optimizerG(discriminatorG->parameters(), torch::optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
+    torch::optim::Adam generator_optimizerB(generatorB->parameters(), torch::optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
+    torch::optim::Adam discriminator_optimizerB(discriminatorB->parameters(), torch::optim::AdamOptions(kLr).betas(std::make_tuple(kBeta1, kBeta2)));
 
-    if (1) {
+    if (false) {
         torch::load(generatorR, "D:\\Foton\\xz\\dat\\generatorR-checkpoint.pt");
         torch::load(generator_optimizerR, "D:\\Foton\\xz\\dat\\generator-optimizerR-checkpoint.pt");
         torch::load(discriminatorR, "D:\\Foton\\xz\\dat\\discriminatorR-checkpoint.pt");
@@ -212,7 +230,7 @@ int main() {
             batch_index++;
         }
 
-        Out(fake_imagesR, fake_imagesG, fake_imagesB, ImageSize);
+        Out(fake_imagesR, fake_imagesG, fake_imagesB, image_size);
 
         if (batch_index % kCheckpointEvery == 0) {
             torch::save(generatorR, "D:\\Foton\\xz\\dat\\generatorR-checkpoint.pt");
