@@ -1,10 +1,6 @@
 #include <torch/torch.h>
-#include "Header.h"
+#include "C:\Users\stasan\Downloads\DCGAN-CelebA-PyTorch-CPP-master\torch\torch\Header.h"
 
-int d[6] = { 784, 28*8, 28*4, 28*2, 28, 1 };
-int g[6] = { 100, 28, 28*2, 28*4, 28*8, 784 };
-
-const int image_size = 28;
 
 // Define a new Module.
 struct Discriminator : torch::nn::Module {
@@ -69,7 +65,10 @@ int main() {
 
 
     // Create a multi-threaded data loader for the MNIST dataset.
-    auto data_loader = torch::data::make_data_loader(torch::data::datasets::MNIST("D:\\Foton\\xz").map(torch::data::transforms::Stack<>()), Batch);
+    //auto data_loader = torch::data::make_data_loader(torch::data::datasets::MNIST("D:\\Foton\\xz").map(torch::data::transforms::Stack<>()), Batch);
+
+    auto datasetR = FaceDatasetR().map(torch::data::transforms::Normalize<>(0.5, 0.5)).map(torch::data::transforms::Stack<>());
+    auto data_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(datasetR, torch::data::DataLoaderOptions().batch_size(Batch).enforce_ordering(false));
 
     // Instantiate an SGD optimization algorithm to update our Net's parameters.
     //torch::optim::SGD optimizer(dis->parameters(), /*lr=*/0.001);
