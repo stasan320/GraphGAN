@@ -1,5 +1,5 @@
 #include <torch/torch.h>
-#include "C:\Users\stasan\Downloads\DCGAN-CelebA-PyTorch-CPP-master\torch\torch\Header.h"
+#include "Header.h"
 
 
 // Define a new Module.
