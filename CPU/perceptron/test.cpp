@@ -1,6 +1,7 @@
 	//Conv Neural
   
-  for (int k = 0; k < 7; k++) {
+	
+	for (int k = 0; k < 7; k++) {
 		for (int l = 0; l < 7; l++) {
 			for (int m = 0; m < 4; m++) {
 				int SvNum = k * 4 * 28 + 4 * l + m * 28;
@@ -17,4 +18,7 @@
 		}
 
 
-	} 
+	}
+
+
+	return 0;
