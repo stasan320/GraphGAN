@@ -28,7 +28,7 @@ void SumFunc(std::vector<float>& out, float* weight, int* n, int num) {
 	}
 }
 
-void Iter(std::vector<float>& out, float* weight, std::vector<float>& delw, std::vector<float>& del, int* n, int num, int coat) {
+void Iter(std::vector<float>& out, std::vector<float>& outOld, float* weight, std::vector<float>& del, std::vector<float>& delOld, int* n, int num, int coat) {
 	int Onum = 0, Wnum = 0, Dnum = 0;
 	for (int i = 0; i < (coat - num - 2); i++) {
 		Onum = Onum + n[i];
@@ -46,6 +46,14 @@ void Iter(std::vector<float>& out, float* weight, std::vector<float>& delw, std:
 		}
 		del[Dnum + n[coat - num - 1] + i] = per * (1 - out[Onum + i]) * out[Onum + i];
 	}
+	for (int i = 0; i < n[coat - num - 2]; i++) {
+		float per = 0;
+		for (int j = 0; j < n[coat - num - 1]; j++) {
+			per = per + delOld[Dnum + j] / (float)n[coat - num - 1];
+		}
+		delOld[Dnum + n[coat - num - 1] + i] = per * (1 - outOld[Onum + i]) * outOld[Onum + i];
+	}
+
 	Dnum = Dnum + n[coat - num - 1];
 	Onum = 0, Wnum = 0;
 
@@ -54,10 +62,11 @@ void Iter(std::vector<float>& out, float* weight, std::vector<float>& delw, std:
 		Wnum = Wnum + n[i] * n[i + 1];
 	}
 
-	for (int i = 0; i < n[coat - num - 3]; i++) {
-		for (int j = 0; j < n[coat - num - 2]; j++) {
-			int WeightNum = Wnum + i + j * n[coat - num - 3];
-			weight[WeightNum] = weight[WeightNum] + Step * del[j];
+	for (int i = 0; i < n[coat - num - 2]; i++) {
+		for (int j = 0; j < n[coat - num - 3]; j++) {
+			int WeightNum = Wnum + j + i * n[coat - num - 3];
+
+			weight[WeightNum] = weight[WeightNum] + Step * (delOld[Dnum + j] - del[Dnum + j]);
 		}
 	}
 }
