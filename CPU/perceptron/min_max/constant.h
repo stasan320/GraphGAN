@@ -5,14 +5,14 @@
 
 const float Step = 0.3;
 
-void Random(float* Arr, float min, float max, int start, int end, clock_t MStime) {
+void Random(std::vector<float>& Arr, float min, float max, int start, int end, clock_t MStime) {
 	srand(static_cast<unsigned long long>(MStime + time(0)));
 	for (int i = start; i < end; i++) {
 		Arr[i] = (float)(rand()) / RAND_MAX * (max - min) + min;
 	}
 }
 
-void SumFunc(std::vector<float>& out, float* weight, int* n, int num) {
+void SumFunc(std::vector<float>& out, std::vector<float>& weight, int* n, int num) {
 	int Onum = 0, Wnum = 0;
 	for (int i = 0; i < num; i++) {
 		Onum = Onum + n[i];
@@ -28,7 +28,7 @@ void SumFunc(std::vector<float>& out, float* weight, int* n, int num) {
 	}
 }
 
-void Iter(std::vector<float>& out, std::vector<float>& outOld, float* weight, std::vector<float>& del, std::vector<float>& delOld, int* n, int num, int coat) {
+void Iter(std::vector<float>& out, std::vector<float>& outOld, std::vector<float>& weight, std::vector<float>& del, std::vector<float>& delOld, int* n, int num, int coat) {
 	int Onum = 0, Wnum = 0, Dnum = 0;
 	for (int i = 0; i < (coat - num - 2); i++) {
 		Onum = Onum + n[i];
@@ -74,23 +74,19 @@ void Iter(std::vector<float>& out, std::vector<float>& outOld, float* weight, st
 void Image(cv::Mat image, std::vector<float>& out, int Onum) {
 	for (int i = 0; i < image.rows; i++) {
 		for (int j = 0; j < image.cols; j++) {
-			float per;
-			per = image.at<cv::Vec3b>(i, j)[0];
-			out[Onum + i * image.cols + j] = per / 255.0;
+			out[Onum + i * image.cols + j] = image.at<uchar>(i, j) / (float)255;
+			//std::cout << out[Onum + i * image.cols + j] << "   " << image.at<uchar>(i, j)<< std::endl;
 		}
 	}
 
-	for (int i = 0; i < 2; i++) {
-		for (int j = 0; j < 2; j++) {
-			out[Onum + i * image.cols + j] = 1.0;
-		}
-	}
 }
 
-void Out(cv::Mat image, std::vector<float>& out, int Onum) {
+void Out(std::vector<float>& out, int Onum) {
+	cv::Mat image(28, 28, CV_8UC1);
+
 	for (int i = 0; i < image.rows; i++) {
 		for (int j = 0; j < image.cols; j++) {
-			image.at<uchar>(i, j) = ceil(out[Onum + j + i * image.cols] * 255);
+			image.at<unsigned char>(i, j) = out[Onum + j + i * image.cols] * 255;
 		}
 	}
 	cv::imshow("Out", image);
