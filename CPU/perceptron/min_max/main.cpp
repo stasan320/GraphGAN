@@ -173,12 +173,12 @@ int main() {
 				//DelDopNum += 
 			}
 
-			for (int i = 0; i < generator.Layer[LayersNumG - 1]; i++) {
-				for (int j = 0; j < generator.Layer[LayersNumG - 2]; j++) {
-					int WeightNum = generator.Wnum - generator.Layer[LayersNumG - 2] * generator.Layer[LayersNumG - 1] + j + i * generator.Layer[LayersNumG - 2];
-					int OutNum = generator.Onum - generator.Layer[LayersNumG - 2] - generator.Layer[LayersNumG - 1] + j;
+			for (int i = 0; i < generator.Layer[LayersNumG - 2]; i++) {
+				for (int j = 0; j < generator.Layer[LayersNumG - 1]; j++) {
+					int WeightNum = generator.Wnum - generator.Layer[LayersNumG - 2] * generator.Layer[LayersNumG - 1] + i + j * generator.Layer[LayersNumG - 2];
+					int OutNum = generator.Onum - generator.Layer[LayersNumG - 2] - generator.Layer[LayersNumG - 1] + i;
 					//std::cout << WeightNum << std::endl;
-					Gweight[WeightNum] = Gweight[WeightNum] + Step * Gdel[DelDopNum + i] * Gout[OutNum];
+					Gweight[WeightNum] = Gweight[WeightNum] + Step * Gdel[DelDopNum + j] * Gout[OutNum];
 				}
 			}
 		}
