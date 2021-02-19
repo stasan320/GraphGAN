@@ -17,10 +17,10 @@ int main() {
 	}
 
 	std::vector<float> out(discriminator.Onum, 0);
-	std::vector<float> outOld(discriminator.Onum, 0);
+	std::vector<float> outReal(discriminator.Onum, 0);
 	std::vector<float> weight(discriminator.Wnum);
-	std::vector<float>del(discriminator.Onum, 0);
-	std::vector<float>delOld(discriminator.Onum, 0);
+	std::vector<float> del(discriminator.Onum, 0);
+	std::vector<float> delOld(discriminator.Onum, 0);
 
 	std::vector<float> Gout(generator.Onum, 0);
 	std::vector<float> GoutOld(generator.Onum, 0);
@@ -47,36 +47,28 @@ int main() {
 
 
 			cv::resize(image, image, cv::Size(image_size, image_size));
-			Image(image, out, 0);
-			for (ull i = 0; i < (LayersNumD - 1); i++) {
-				Exp(out, weight, discriminator.Layer, i);
-			}
+			BatchExp(image, out, 0);
+			Exp(out, weight, discriminator.Layer, LayersNumD);
 
-			outOld = out;
+			outReal = out;
 			float out1 = out[discriminator.Onum - discriminator.Layer[LayersNumD - 1]];
 
-			Random(Gout, 0, 1, 0, generator.Layer[0], clock());
-			for (ull i = 0; i < (LayersNumG - 1); i++) {
-				Exp(Gout, Gweight, generator.Layer, i);
-			}
+			Random(Gout, -0.5, 0, 0, generator.Layer[0], clock());
+			Exp(Gout, Gweight, generator.Layer, LayersNumG);
 			for (ull i = 0; i < generator.Layer[LayersNumG - 1]; i++) {
 				out[i] = Gout[generator.Onum - generator.Layer[LayersNumG - 1] + i];
 			}
+
 			//Out(out, 0);
 
 
-			for (ull i = 0; i < (LayersNumD - 1); i++) {
-				Exp(out, weight, discriminator.Layer, i);
-			}
+
+			Exp(out, weight, discriminator.Layer, LayersNumD);
 			float out2 = out[discriminator.Onum - discriminator.Layer[LayersNumD - 1]];
 
 
 			float LossFucntionD = log(out1) + log(1 - out2);
-			//float LossFucntionG = log(out2);
-			//float LossFunctionD = ()
-
-			//std::cout.precision(3);
-			//std::cout << out1 << "   " << out2 << "   " << "LossD: " << LossFucntionD << std::endl;
+			std::cout << out1 << "   " << out2 << "   " << "LossD: " << LossFucntionD << std::endl;
 
 
 			for (ull i = 0; i < discriminator.Layer[LayersNumD - 2]; i++) {
@@ -85,73 +77,72 @@ int main() {
 					ull WeightNum = discriminator.Wnum - discriminator.Layer[LayersNumD - 1] * discriminator.Layer[LayersNumD - 2] + j * discriminator.Layer[LayersNumD - 2] + i;
 
 
-					delOld[i] = (1 - out1) * outOld[OutNum + i];
+					delOld[i] = (1 - out1) * outReal[OutNum + i];
 					del[i] = out2 * out[OutNum + i];
-					weight[WeightNum] = weight[WeightNum] + Step * (delOld[i] - del[i]);
+					weight[WeightNum] = weight[WeightNum] + StepD * (delOld[i] - del[i]);
 				}
 			}
 
-			for (ull i = 0; i < (LayersNumD - 2); i++) {
-				Iter(out, outOld, weight, del, delOld, discriminator.Layer, i, LayersNumD);
-			}
+			Iter(out, outReal, weight, del, delOld, discriminator.Layer, LayersNumD);
 		}
 
 
 		for (ull G = 0; G < G_max; G++) {
-		float out2 = 0;
-		//while(out2 < 0.9) {
-			Random(Gout, 0, 1, 0, generator.Layer[0], clock());
-			for (ull i = 0; i < (LayersNumG - 1); i++) {
-				Exp(Gout, Gweight, generator.Layer, i);
-			}
+			Random(Gout, -0.5, 0, 0, generator.Layer[0], clock());
+			Exp(Gout, Gweight, generator.Layer, LayersNumG);
+
 			for (ull i = 0; i < generator.Layer[LayersNumG - 1]; i++) {
 				out[i] = Gout[generator.Onum - generator.Layer[LayersNumG - 1] + i];
 			}
 			Out(out, 0);
 
 
-			for (ull i = 0; i < (LayersNumD - 1); i++) {
-				Exp(out, weight, discriminator.Layer, i);
-			}
-			out2 = out[discriminator.Onum - discriminator.Layer[LayersNumD - 1]];
+			Exp(out, weight, discriminator.Layer, LayersNumD);
+			float out2 = out[discriminator.Onum - 1];
 			float LossFucntionG = log(out2);
 			std::cout << out2 << "   " << "LossG: " << LossFucntionG << std::endl;
 
 			ull WeightDopNum = 0, OutDopNum = 0, DelDopNum = 0;
-			WeightDopNum += discriminator.Layer[LayersNumD - 2] * discriminator.Layer[LayersNumD - 1];
-			OutDopNum += discriminator.Layer[LayersNumD - 1];
+			WeightDopNum += discriminator.Layer[LayersNumD - 2];
+			OutDopNum += discriminator.Layer[LayersNumD - 1] + discriminator.Layer[LayersNumD - 2];
 
 			for (ull i = 0; i < discriminator.Layer[LayersNumD - 2]; i++) {
-				float per = 0;
-				for (ull j = 0; j < discriminator.Layer[LayersNumD - 1]; j++) {
-					ull WeightNum = discriminator.Wnum - WeightDopNum + i + j * discriminator.Layer[LayersNumD - 2];
-					ull OutNum = discriminator.Onum - OutDopNum + j;
+				ull WeightNum = discriminator.Wnum - WeightDopNum + i;
+				ull OutNum = discriminator.Onum - OutDopNum + i;
 
-					per += (1 - out[OutNum]) * weight[WeightNum];
-				}
-				ull OutNum = discriminator.Onum - OutDopNum - discriminator.Layer[LayersNumD - 2] + i;
-				Gdel[i] = per * out[OutNum] * (1 - out[OutNum]);
+				Gdel[i] = (1 - out2) * weight[WeightNum] * out[OutNum] * (1 - out[OutNum]);
 			}
+
+			/*if (LayersNumD == 3) {
+				for (ull i = 0; i < discriminator.Layer[0]; i++) {
+					float Sum = 0;
+					for (ull j = 0; j < discriminator.Layer[1]; j++) {
+						ull WeightNum = i + j * discriminator.Layer[0];
+						Sum += Gdel[j] * weight[WeightNum];
+					}
+					Gdel[discriminator.Layer[1] + i] = Sum * out[i] * (1 - out[i]);
+				}
+
+				DelDopNum += discriminator.Layer[1];
+			}*/
 
 			for (ull num = 0; num < (LayersNumD - 2); num++) {
 				WeightDopNum += discriminator.Layer[LayersNumD - 2 - num] * discriminator.Layer[LayersNumD - 3 - num];
 				OutDopNum += discriminator.Layer[LayersNumD - 2 - num];
 
 				for (ull i = 0; i < discriminator.Layer[LayersNumD - 3 - num]; i++) {
-					float per = 0;
+					float sum = 0;
 					for (ull j = 0; j < discriminator.Layer[LayersNumD - 2 - num]; j++) {
 						ull WeightNum = discriminator.Wnum - WeightDopNum + i + j * discriminator.Layer[LayersNumD - 3 - num];
 						//int OutNum = discriminator.Onum - OutDopNum + j;
 
-						per += (Gdel[DelDopNum + j] * weight[WeightNum])/* / (float)discriminator.Layer[LayersNumD - 2 - num]*/;
+						sum += (Gdel[DelDopNum + j] * weight[WeightNum])/* / (float)discriminator.Layer[LayersNumD - 2 - num]*/;
 					}
 					ull OutNum = discriminator.Onum - OutDopNum - discriminator.Layer[LayersNumD - 3 - num] + i;
-					Gdel[DelDopNum + discriminator.Layer[LayersNumD - 2 - num] + i] = per * out[OutNum] * (1 - out[OutNum]);
+					Gdel[DelDopNum + discriminator.Layer[LayersNumD - 2 - num] + i] = sum * out[OutNum] * (1 - out[OutNum]);
 				}
 				DelDopNum += discriminator.Layer[LayersNumD - 2 - num];
 			}
-
-
 			WeightDopNum = 0, OutDopNum = 0;
 
 			for (ull num = 0; num < (LayersNumG - 2); num++) {
