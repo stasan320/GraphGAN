@@ -9,10 +9,10 @@
 
 typedef unsigned long long ull;
 
-int DMAX = 128;
-int GMAX = 128;
-const int image_size = 64;
-const int LayersNumD = 2;
+const int DMAX = 64;
+const int GMAX = 64;
+const int image_size = 28;
+const int LayersNumD = 3;
 const int LayersNumG = 3;
 const float StepD = 0.3;
 const float StepG = 0.3;
@@ -22,13 +22,13 @@ struct Discriminator {
 	ull Onum = 0;
 	ull Wnum = 0;
 	ull Dnum = 0;
-	ull Layer[LayersNumD] = { image_size * image_size, 1 };
+	ull Layer[LayersNumD] = { image_size * image_size, 5, 1 };
 };
 struct Generator {
 	ull Onum = 0;
 	ull Wnum = 0;
 	ull Dnum = 0;
-	ull Layer[LayersNumG] = { 20, 20, (image_size * image_size) };
+	ull Layer[LayersNumG] = { 10, 20, image_size * image_size };
 };
 
 static Discriminator discriminator;
@@ -45,11 +45,11 @@ void Random(std::vector<float>& Arr, float min, float max, ull start, ull end, c
 void Exp(std::vector<float>& out, std::vector<float>& weight, ull* n, ull num) {
 	ull Onum = 0, Wnum = 0;
 	for (ull L = 0; L < (num - 1); L++) {
+		//out[Onum] = 0;
 		for (ull i = 0; i < n[L + 1]; i++) {
 			float sum = 0;
-			for (ull j = 0; j < n[L]; j++) {
+			for (ull j = 0; j < n[L]; j++)
 				sum += weight[Wnum + j + i * n[L]] * out[Onum + j];
-			}
 			out[Onum + n[L] + i] = 1.0 / (1.0 + exp(-sum));
 		}
 
