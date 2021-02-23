@@ -1,4 +1,5 @@
 #include "constant.h"
+#include <Windows.h>
 
 int main() {
 
@@ -37,8 +38,8 @@ int main() {
 
 	for (ull epoch = 0; epoch < 10000; epoch++) {
 		for (ull D = 0; D < DMAX; D++) {
-			cv::Mat image = cv::imread("F:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string((D + epoch * DMAX) % 60000) + ".png", CV_8UC1);
-			//cv::Mat image = cv::imread("F:\\Foton\\ngnl_data\\training\\help\\" + std::to_string(rand() % 10) + "\\" + std::to_string((epoch * DMAX + D) % 6000 + 1) + ".png", CV_8UC1);
+			//cv::Mat image = cv::imread("F:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string((D + epoch * DMAX) % 60000) + ".png", CV_8UC1);
+			cv::Mat image = cv::imread("F:\\Foton\\ngnl_data\\training\\help\\" + std::to_string(0) + "\\" + std::to_string((epoch * DMAX + D) % 6000 + 1) + ".png", CV_8UC1);
 
 			cv::resize(image, image, cv::Size(image_size, image_size));
 			BatchExp(image, out, 0);
@@ -53,33 +54,43 @@ int main() {
 				out[i] = Gout[generator.Onum - generator.Layer[LayersNumG - 1] + i];
 			}
 
-			//Out(out, 0);
-
-
-
 			Exp(out, weight, discriminator.Layer, LayersNumD);
+
 			float out2 = out[discriminator.Onum - discriminator.Layer[LayersNumD - 1]];
 
 
 			float LossFucntionD = log(out1) + log(1 - out2);
-			std::cout << out1 << "   " << out2 << "   " << "LossD: " << LossFucntionD << std::endl;
+			//std::cout << out1 << "   " << out2 << "   " << "LossD: " << LossFucntionD << std::endl;
 
 
-			for (ull i = 0; i < discriminator.Layer[LayersNumD - 2]; i++) {
-				for (ull j = 0; j < discriminator.Layer[LayersNumD - 1]; j++) {
-					ull OutNum = discriminator.Onum - discriminator.Layer[LayersNumD - 1] - discriminator.Layer[LayersNumD - 2];
-					ull WeightNum = discriminator.Wnum - discriminator.Layer[LayersNumD - 1] * discriminator.Layer[LayersNumD - 2] + j * discriminator.Layer[LayersNumD - 2] + i;
+			for (ull i = 0; i < discriminator.Layer[1]; i++) {
+				float sumOld = 0;
+				float sum = 0;
+				ull OutNum = discriminator.Layer[0] + i;
 
+				for (ull j = 0; j < discriminator.Layer[2]; j++) {
+					ull WeightNum = discriminator.Layer[0] * discriminator.Layer[1] + i + j * discriminator.Layer[1];
 
-					delOld[i] = (1 - out1) * outReal[OutNum + i];
-					del[i] = out2 * out[OutNum + i];
-					weight[WeightNum] = weight[WeightNum] + StepD * (delOld[i] - del[i]);
+					sumOld += (1 - out1) * weight[WeightNum];
+					sum += out2 * weight[WeightNum];
+
+					weight[WeightNum] = weight[WeightNum] + StepD * ((1 - out1) * outReal[OutNum] - out2 * out[OutNum]);
+				}
+				delOld[i] = sumOld * outReal[OutNum] * (1 - outReal[OutNum]);
+				del[i] = sum * out[OutNum] * (1 - out[OutNum]);
+			}
+
+			for (ull i = 0; i < discriminator.Layer[0]; i++) {
+				for (ull j = 0; j < discriminator.Layer[1]; j++) {
+					ull OutNum = i;
+					ull WeightNum = i + j * discriminator.Layer[0];
+
+					weight[WeightNum] = weight[WeightNum] + StepD * (delOld[j] * outReal[i] - del[j] * out[i]);
 				}
 			}
 
-			Iter(out, outReal, weight, del, delOld, discriminator.Layer, LayersNumD);
+			//Iter(out, outReal, weight, del, delOld, discriminator.Layer, LayersNumD);
 		}
-
 
 		for (ull G = 0; G < GMAX; G++) {
 			Random(Gout, 0, 1, 0, generator.Layer[0], clock());
@@ -100,29 +111,35 @@ int main() {
 			WeightDopNum += discriminator.Layer[LayersNumD - 2] * discriminator.Layer[LayersNumD - 1];
 			OutDopNum += discriminator.Layer[LayersNumD - 1] + discriminator.Layer[LayersNumD - 2];
 
-			/*for (ull i = 0; i < discriminator.Layer[1]; i++) {
-				ull WeightNum = discriminator.Layer[0] * discriminator.Layer[1] + i;
+			for (ull i = 0; i < discriminator.Layer[1]; i++) {
+				float sumOld = 0;
 				ull OutNum = discriminator.Layer[0] + i;
 
-				Gdel[i] = (1 - out2) * weight[WeightNum] * out[OutNum] * (1 - out[OutNum]);
-			}*/
+				for (ull j = 0; j < discriminator.Layer[2]; j++) {
+					ull WeightNum = discriminator.Layer[0] * discriminator.Layer[1] + i + j * discriminator.Layer[1];
+
+					sumOld += (1 - out2) * weight[WeightNum];
+				}
+				Gdel[i] = sumOld * out[OutNum] * (1 - out[OutNum]);
+			}
 
 			for (ull i = 0; i < discriminator.Layer[0]; i++) {
+				float sum = 0;
+				for (ull j = 0; j < discriminator.Layer[1]; j++) {
+					ull OutNum = i;
+					ull WeightNum = i + j * discriminator.Layer[0];
+					sum += Gdel[j] * weight[WeightNum];
+				}
+				Gdel[discriminator.Layer[1] + i] = sum * out[i] * (1 - out[i]);
+			}
+			DelDopNum += discriminator.Layer[1];
+
+			/*for (ull i = 0; i < discriminator.Layer[0]; i++) {
 				ull WeightNum = i;
 				ull OutNum = i;
 
 				Gdel[i] = (1 - out2) * weight[WeightNum] * out[OutNum] * (1 - out[OutNum]);
-			}
-
-			/*for (ull i = 0; i < discriminator.Layer[0]; i++) {
-				float Sum = 0;
-				for (ull j = 0; j < discriminator.Layer[1]; j++) {
-					ull WeightNum = i + j * discriminator.Layer[0];
-					Sum += Gdel[j] * weight[WeightNum];
-				}
-				Gdel[discriminator.Layer[1] + i] = Sum * out[i] * (1 - out[i]);
-			}
-			DelDopNum += discriminator.Layer[1];*/
+			}*/
 			WeightDopNum = 0, OutDopNum = 0;
 
 
