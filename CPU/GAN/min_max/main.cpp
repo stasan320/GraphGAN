@@ -39,7 +39,7 @@ int main() {
 	for (ull epoch = 0; epoch < 10000; epoch++) {
 		for (ull D = 0; D < DMAX; D++) {
 			//cv::Mat image = cv::imread("F:\\Foton\\ngnl_data\\training\\help\\anime\\" + std::to_string((D + epoch * DMAX) % 60000) + ".png", CV_8UC1);
-			cv::Mat image = cv::imread("F:\\Foton\\ngnl_data\\training\\help\\" + std::to_string(0) + "\\" + std::to_string((epoch * DMAX + D) % 6000 + 1) + ".png", CV_8UC1);
+			cv::Mat image = cv::imread("F:\\Foton\\ngnl_data\\training\\help\\" + std::to_string(rand() % 10) + "\\" + std::to_string((epoch * DMAX + D) % 6000 + 1) + ".png", CV_8UC1);
 
 			cv::resize(image, image, cv::Size(image_size, image_size));
 			BatchExp(image, out, 0);
@@ -99,7 +99,7 @@ int main() {
 			for (ull i = 0; i < generator.Layer[LayersNumG - 1]; i++) {
 				out[i] = Gout[generator.Onum - generator.Layer[LayersNumG - 1] + i];
 			}
-			Out(out, 0);
+			OutExp(out, 0);
 
 
 			Exp(out, weight, discriminator.Layer, LayersNumD);
@@ -108,8 +108,6 @@ int main() {
 			std::cout << out2 << "   " << "LossG: " << LossFucntionG << std::endl;
 
 			ull WeightDopNum = 0, OutDopNum = 0, DelDopNum = 0;
-			WeightDopNum += discriminator.Layer[LayersNumD - 2] * discriminator.Layer[LayersNumD - 1];
-			OutDopNum += discriminator.Layer[LayersNumD - 1] + discriminator.Layer[LayersNumD - 2];
 
 			for (ull i = 0; i < discriminator.Layer[1]; i++) {
 				float sumOld = 0;
@@ -132,14 +130,8 @@ int main() {
 				}
 				Gdel[discriminator.Layer[1] + i] = sum * out[i] * (1 - out[i]);
 			}
-			DelDopNum += discriminator.Layer[1];
+			DelDopNum = discriminator.Layer[1];
 
-			/*for (ull i = 0; i < discriminator.Layer[0]; i++) {
-				ull WeightNum = i;
-				ull OutNum = i;
-
-				Gdel[i] = (1 - out2) * weight[WeightNum] * out[OutNum] * (1 - out[OutNum]);
-			}*/
 			WeightDopNum = 0, OutDopNum = 0;
 
 
@@ -152,9 +144,7 @@ int main() {
 					per += Gdel[DelDopNum + j] * Gweight[WeightNum];
 
 					Gweight[WeightNum] = Gweight[WeightNum] + StepG * Gdel[DelDopNum + j] * Gout[OutNum];
-
 				}
-
 				Gdel[DelDopNum + generator.Layer[2] + i] = per * (1 - Gout[OutNum]) * Gout[OutNum];
 			}
 			DelDopNum += generator.Layer[2];
