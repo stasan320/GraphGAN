@@ -14,21 +14,23 @@ const int GMAX = 64;
 const int image_size = 28;
 const int LayersNumD = 3;
 const int LayersNumG = 3;
-const float StepD = 0.3;
-const float StepG = 0.3;
+const float StepD = 0.03;
+const float StepG = 0.03;
 const float Leaky = 0.05;
+
+const float delA = 100;
 
 struct Discriminator {
 	ull Onum = 0;
 	ull Wnum = 0;
 	ull Dnum = 0;
-	ull Layer[LayersNumD] = { image_size * image_size, 5, 1 };
+	ull Layer[LayersNumD] = { image_size * image_size, 10, 1 };
 };
 struct Generator {
 	ull Onum = 0;
 	ull Wnum = 0;
 	ull Dnum = 0;
-	ull Layer[LayersNumG] = { 10, 20, image_size * image_size };
+	ull Layer[LayersNumG] = { 40, 100, image_size * image_size };
 };
 
 static Discriminator discriminator;
@@ -114,6 +116,12 @@ void BatchTanh(cv::Mat image, std::vector<float>& out, ull Onum) {
 			out[Onum + i * image.cols + j] = -1 + image.at<uchar>(i, j) / 255.0 * 2.0;
 }
 
+void BatchExp(cv::Mat image, std::vector<float>& out, ull Onum) {
+	for (ull i = 0; i < image.rows; i++)
+		for (ull j = 0; j < image.cols; j++)
+			out[Onum + i * image.cols + j] = image.at<uchar>(i, j) / 255.0;
+}
+
 void OutTanh(std::vector<float>& out, ull Onum) {
 	cv::Mat image(image_size, image_size, CV_8UC1);
 	for (ull i = 0; i < image.rows; i++)
@@ -124,13 +132,7 @@ void OutTanh(std::vector<float>& out, ull Onum) {
 	cv::waitKey(1);
 }
 
-void BatchExp(cv::Mat image, std::vector<float>& out, ull Onum) {
-	for (ull i = 0; i < image.rows; i++)
-		for (ull j = 0; j < image.cols; j++)
-			out[Onum + i * image.cols + j] = image.at<uchar>(i, j) / 255.0;
-}
-
-void Out(std::vector<float>& out, ull Onum) {
+void OutExp(std::vector<float>& out, ull Onum) {
 	cv::Mat image(image_size, image_size, CV_8UC1);
 	for (ull i = 0; i < image.rows; i++)
 		for (ull j = 0; j < image.cols; j++)
